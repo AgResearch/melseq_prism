@@ -1,3 +1,6 @@
 seq_prisms
 tardis*
 summary_commands.txt
+bin/
+test/
+test_steps.sh
