@@ -11,7 +11,7 @@ function get_opts() {
    MAX_TASKS=1
    FORCE=no
    ANALYSIS=demultiplex
-   taxonomy_blast_database=
+   taxonomy_blast_database=""
    taxonomy_lookup_file=
    seqlength_min=40
    seqqual_min=20
@@ -114,9 +114,11 @@ function check_opts() {
       echo "HPC_TYPE must be one of local, slurm"
       exit 1
    fi
-   if [ ! -f ${taxonomy_blast_database}.nin  ]; then
-      echo "bad blast database (cant see ${taxonomy_blast_database}.nin ) (you might need to supply the full path ?)"
-      exit 1
+   if [ ! -z $taxonomy_blast_database ]; then
+      if [ ! -f ${taxonomy_blast_database}.nin  ]; then
+         echo "bad blast database (cant see ${taxonomy_blast_database}.nin ) (you might need to supply the full path ?)"
+         exit 1
+      fi
    fi
    python -c "print float('$similarity')" >/dev/null 2>&1
    if [ $? != 0 ]; then
