@@ -1,0 +1,514 @@
+#!/bin/sh
+
+export SEQ_PRISMS_BIN=/dataset/gseq_processing/active/bin/melseq_prism/seq_prisms 
+export GBS_PRISM_BIN=/dataset/gseq_processing/active/bin/gbs_prism
+export MELSEQ_PRISM_BIN=/dataset/gseq_processing/active/bin/melseq_prism
+export HISEQ_ROOT=/dataset/gseq_processing/scratch/illumina/hiseq
+
+
+melseq_version=$1
+
+function read_answer_with_default() {
+   read answer
+   if [ -z "$answer" ]; then
+      answer=$@
+   fi
+}
+
+function get_input_files() {
+   # this gets input files to process, including the sample info 
+   while [ 1 ]; do
+      if [ -f $OUT_ROOT/input_file_list.txt ]; then
+         echo "will process the following files: . . . (press Enter/Return for a list - then press space bar to page through listing)"
+         read answer
+         more $OUT_ROOT/input_file_list.txt
+         echo "OK ? (default = y)"
+         read_answer_with_default y
+         if [ $answer == "y" ]; then
+            echo ""
+         else
+            echo "
+ok quitting - you can edit the file $OUT_ROOT/input_file_list.txt in order to customise the
+files to process, or remove it so that the data folder is re-scanned for files to process, and try again"
+            exit 1
+         fi
+      fi
+
+      if [ -f $OUT_ROOT/sample_info.txt ]; then
+         echo "will use the following sample info . . . (press Enter/Return for a list - then press space bar to page through listing)"
+         read answer
+         more $OUT_ROOT/sample_info.txt
+         echo "OK ? (default = y)"
+         read_answer_with_default y
+         if [ $answer == "y" ]; then
+            if [ -f $OUT_ROOT/input_file_list.txt ]; then
+               break   # we have everything we need 
+            fi
+         else
+            echo "
+ok quitting - you can edit the file $OUT_ROOT/sample_info.txt in order to customise the
+sample info , or remove it so that it is re-extracted, and try again"
+            exit 1
+         fi
+      fi
+
+      if [ ! -f $OUT_ROOT/input_file_list.txt ]; then 
+         echo "
+finding files to process..."
+         # see if DATASET is a folder 
+         if [ -d $DATASET ]; then 
+            if [[ ( $ANALYSIS == "all" ) ( $ANALYSIS == "demultiplex" ) || ( $ANALYSIS == "trim" ) ]]; then
+               ls $DATASET/*.fastq.gz $DATASET/*.fastq > $OUT_ROOT/input_file_list.txt
+               if [ $? != 0 ]; then
+                  echo "sorry could not find any data in $DATASEQ , for $ANALYSIS"
+                  exit 1
+               if
+            elif [ some_other_stuff ];  ############ add file find for other analysis types
+               echo "tba !"
+            fi
+         else
+            # assume its a hiseq library name 
+            ls $HISEQ_ROOT/*/bcl2fastq/${DATASET}*.fastq.gz >  $OUT_ROOT/input_file_list.txt
+            if [ $? != 0 ]; then
+               echo "sorry could not find any data for $DATASEQ (neither a folder, nor a hiseq lane output file)"
+               exit 1
+            fi
+         fi
+      fi
+
+      # we have files to process
+      # try getting the keyfile if not there
+      if [ ! -f $OUT_ROOT/sample_info.txt ]; then
+         echo "getting keyfile..."
+         set -x
+         $GBS_PRISM_BIN/listDBKeyfile.sh  -s $DATASET -t gbsx  > $OUT_ROOT/sample_info.txt
+         if [ $? != 0 ]; then
+            rm -f OUT_ROOT/sample_info.txt >/dev/null 2>&1
+         fi
+         set +x 
+      fi
+      echo "will process the following files: . . . (press Enter/Return for a list - then press space bar to page through listing)"
+      read answer
+      more $OUT_ROOT/input_file_list.txt
+      echo "OK ? (default = y)"
+      read_answer_with_default y
+      if [ $answer != "y" ]; then
+         echo "
+ok quitting - you can edit the file $OUT_ROOT/input_file_list.txt in order to customise the
+files to process, or remove it so that the data folder is re-scanned for files to process, and try again"
+            exit 1
+      fi
+      if [ ! -f $OUT_ROOT/sample_info.txt ]; then
+         echo "was unable to get keyfile for this run - please create $OUT_ROOT/sample_info.txt, containing sample barcode info, and try again"
+         exit 1
+      else
+         echo "will use the following sample info . . . (press Enter/Return for a list - then press space bar to page through listing)"
+         read answer
+         more $OUT_ROOT/sample_info.txt
+         echo "OK ? (default = y)"
+         read_answer_with_default y
+         if [ $answer != "y" ]; then
+            echo "
+ok quitting - you can edit the file $OUT_ROOT/sample_info.txt in order to customise the
+sample info , or remove it so that it is re-extracted, and try again"
+            exit 1
+         else
+            break
+         fi
+      fi
+   done
+}
+
+
+function get_run_opts() {
+
+   DRY_RUN=no
+   DEBUG=no
+   HPC_TYPE=slurm
+   FILES=""
+   OUT_ROOT=""
+   BLAST_DATABASE=""
+   TAX_DATA=""
+   SIMILARITY=""
+   SEQLENGTH_MIN=""
+   FILE_TYPE=""
+   ENZYME_INFO=""
+   SAMPLE_INFO=""
+   SEQLENGTH_MIN=""
+   SEQQUAL_MIN=$OPTARG
+
+   PROCESSING_ROOT=/dataset/gseq_processing/scratch/melseq
+
+
+   echo "*** melseq analysis version $melseq_version ***
+* note that you can paste into your terminal window by clicking your right mouse button
+* you can select text in the terminal window using your left mouse button
+* at any stage you can press CTRL-C to exit the dialogs
+* if you would prefer to run a single batch command, use melseq_prism.sh (-h for help) - e.g. 
+  this allows you to run the analysis on any collection of input files
+"
+
+   ####### get and check DATASET
+   while [ 1 ] ; do
+      echo "
+please give either the name of the GBS library you would like to process (e.g. SQ0881) or the name of a folder containing your sequence data 
+"
+      read DATASET
+      if [ ! -z "$DATASET" ]; then 
+         break
+      fi
+
+   done
+
+   DATASET_BASE=`basename $DATASET`
+
+
+   ####### get and check whether to run locally or on the cluster
+   echo "
+
+should this run be queued on the compute cluster ? (y/n, default=y. If n, will be run locally)
+"
+   read_answer_with_default y
+   if [ "$answer" != "n" ]; then 
+      HPC_TYPE=slurm
+   else
+      HPC_TYPE=local
+   fi
+   
+
+   # set up folder
+   while [ 1 ]; do
+      echo "please specify output base folder (or just press Enter/Return to use default , $PROCESSING_ROOT/$DATASET_BASE)"
+      read_answer_with_default $PROCESSING_ROOT/$DATASET_BASE
+      NEW_ROOT=$answer
+      if [ -d $NEW_ROOT ]; then
+         echo "warning - $NEW_ROOT already exists, use anyway ? (y/n, default=y)"
+         read_answer_with_default y
+         if [[ ( $answer == "y" ) || ( -z $answer ) ]]; then
+            OUT_ROOT=$NEW_ROOT
+            break
+         fi
+      else
+         mkdir -p $NEW_ROOT
+         if [ -d $NEW_ROOT ]; then
+            OUT_ROOT=$NEW_ROOT
+            break
+         fi
+      fi
+   done
+
+   echo "will use output root folder $OUT_ROOT 
+
+   "
+
+   
+   ####### get and check the analysis type 
+   while [ 1 ] ; do
+      ANALYSIS=all
+      echo "
+please give which analysis you want (all, demultiplex, trim, format, blast, summarise, kmer_analysis, clean) (or just press enter to all)  
+(the default of all, will demultiplex, then trim, then reformat as fasta, run the blast, summarise blast results and do a kmer_analysis )
+"
+      read_answer_with_default all
+      ANALYSIS=$answer
+
+      if [[ ( $ANALYSIS != "all" )  && ( $ANALYSIS != "demultiplex" ) && ( $ANALYSIS != "trim" ) && ( $ANALYSIS != "format" ) && ( $ANALYSIS != "blast" ) && ( $ANALYSIS != "kmer_analysis" ) && ( $ANALYSIS != "summarise" )  ]] ; then
+         echo "analysis must be one of demultiplex, trim , format, blast, summarise , clean) "
+      else
+         break
+      fi
+   done
+
+   echo "will use analysis=$ANALYSIS
+   "
+
+   # get input files (depends on what the ANALYSIS is ) 
+   get_input_files
+
+
+   if [[ ( "$ANALYSIS" == "all" ) || ( "$ANALYSIS" == "demultiplex" ) ]]; then
+      ls $OUT_ROOT/*.demultiplexed/* > /dev/null 2>&1
+      if [ $? == 0 ] ; then
+         echo "found existing results under $OUT_ROOT/*.demultiplexed/* - are you sure you want to continue (e.g. complete an interrupted run) ? (y/n)"
+         read_answer_with_default n
+         if [[ ( $answer != "y" )  && ( $answer != "Y" ) ]]; then
+            echo "ok quitting - please either use a different output folder or clean up $OUT_ROOT/*.demultiplexed"
+            exit 1
+         fi
+      fi
+   fi
+   if [[ ( "$ANALYSIS" == "all" ) || ( "$ANALYSIS" == "trim" ) ]]; then
+      ls $OUT_ROOT/trimming/* > /dev/null 2>&1
+      if [ $? == 0 ] ; then
+         echo "found existing results under $OUT_ROOT/trimming - are you sure you want to continue (e.g. complete an interrupted run) ? (y/n)"
+         read_answer_with_default n
+         if [[ ( $answer != "y" )  && ( $answer != "Y" ) ]]; then
+            echo "ok quitting - please use a different output folder"
+            exit 1
+         fi
+      fi
+   fi
+   if [[ ( "$ANALYSIS" == "all" ) || ( "$ANALYSIS" == "format" ) ]]; then
+      ls $OUT_ROOT/fasta/* > /dev/null 2>&1
+      if [ $? == 0 ] ; then
+         echo "found existing results under $OUT_ROOT/fasta - are you sure you want to continue (e.g. complete an interrupted run) ? (y/n)"
+         read_answer_with_default n
+         if [[ ( $answer != "y" )  && ( $answer != "Y" ) ]]; then
+            echo "ok quitting - please use a different output folder"
+            exit 1
+         fi
+      fi
+   fi
+   if [[ ( "$ANALYSIS" == "all" ) || ( "$ANALYSIS" == "blast" ) ]]; then
+      ls $OUT_ROOT/blast/* > /dev/null 2>&1
+      if [ $? == 0 ] ; then
+         echo "found existing results under $OUT_ROOT/blast - are you sure you want to continue (e.g. complete an interrupted run) ? (y/n)"
+         read_answer_with_default n
+         if [[ ( $answer != "y" )  && ( $answer != "Y" ) ]]; then
+            echo "ok quitting - please use a different output folder"
+            exit 1
+         fi
+      fi
+   fi
+   if [[ ( "$ANALYSIS" == "all" ) || ( "$ANALYSIS" == "summarise" ) ]]; then
+      ls $OUT_ROOT/summary/* > /dev/null 2>&1
+      if [ $? == 0 ] ; then
+         echo "found existing results under $OUT_ROOT/summary - are you sure you want to continue (e.g. complete an interrupted run) ? (y/n)"
+         read_answer_with_default n
+         if [[ ( $answer != "y" )  && ( $answer != "Y" ) ]]; then
+            echo "ok quitting - please use a different output folder"
+            exit 1
+         fi
+      fi
+   fi
+   if [[ ( "$ANALYSIS" == "all" ) || ( "$ANALYSIS" == "kmer_analysis" ) ]]; then
+      ls $OUT_ROOT/kmer_ananlysis/* > /dev/null 2>&1
+      if [ $? == 0 ] ; then
+         echo "found existing results under $OUT_ROOT/kmer_analysis - are you sure you want to continue (e.g. complete an interrupted run) ? (y/n)"
+         read_answer_with_default n
+         if [[ ( $answer != "y" )  && ( $answer != "Y" ) ]]; then
+            echo "ok quitting - please use a different output folder"
+            exit 1
+         fi
+      fi
+   fi
+
+
+   ####### get and check the blast data to use 
+   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "blast" ) ]]; then
+      while [ 1 ] ; do
+         echo "
+please give the full path to the blast database (or just press enter to use default, /dataset/GBS_Rumen_Metagenomes/scratch/blast_analysis/GenusPlusQuinella) 
+"
+         read_answer_with_default /dataset/GBS_Rumen_Metagenomes/scratch/blast_analysis/GenusPlusQuinella
+         BLAST_DATABASE=$answer
+
+         if [ -f ${BLAST_DATABASE}.nin ]; then
+            break
+         else
+            echo "could not find blast index file ${BLAST_DATABASE}.nin"
+         fi
+      done
+
+      echo "will use blast database $BLAST_DATABASE"
+   fi
+
+
+   ####### get and check the similarity to use  
+   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "blast" ) ]]; then
+      while [ 1 ] ; do
+         echo "
+please specify the similarity (as an evalue) to use for clustering (or just press enter to use default, 0.02) 
+"
+         read_answer_with_default 0.02
+         SIMILARITY=$answer
+
+         python -c "print float('$SIMILARITY')" >/dev/null 2>&1
+         if [ $? != 0 ]; then
+            echo "looks like similarity requested ( $SIMILARITY ) is not a number"
+            exit 1
+         else
+            break
+         fi
+      done
+
+      echo "will use similarity $SIMILARITY"
+   fi
+
+
+   ####### get and check the minimum length to use  
+   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "trim" ) ]]; then
+      while [ 1 ] ; do
+         SEQLENGTH_MIN=200 
+         echo "
+please specify the minimum seq length (or just press enter to use default, 40) 
+"
+         read_answer_with_default 40
+         SEQLENGTH_MIN=$answer
+
+         python -c "print float('$SEQLENGTH_MIN')" >/dev/null 2>&1
+         if [ $? != 0 ]; then
+            echo "looks like minimum seqlength requested ( $SEQLENGTH_MIN ) is not a number"
+            exit 1
+         else
+            break
+         fi
+      done
+
+      echo "will use minimum seqlength $SEQLENGTH_MIN"
+   fi
+
+
+   ####### get and check the minimum quality to use
+   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "trim" ) ]]; then
+      while [ 1 ] ; do
+         SEQQUAL_MIN=20
+         echo "
+please specify the minimum seq quality (or just press enter to use default, 20)
+"
+         read_answer_with_default 20
+         SEQQUAL_MIN=$answer
+
+         python -c "print float('$SEQQUAL_MIN')" >/dev/null 2>&1
+         if [ $? != 0 ]; then
+            echo "looks like minimum seq qual requested ( $SEQQUAL_MIN ) is not a number"
+            exit 1
+         else
+            break
+         fi
+      done
+
+      echo "will use minimum seq qual $SEQQUAL_MIN"
+   fi
+
+
+} # get_run_opts
+
+
+
+function run_melseq_analysis() {
+
+   rm -f $OUT_ROOT/run_melseq_analysis.src
+
+   ############# demultiplex ##################
+   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "demultiplex" ) ]]; then
+      echo "
+mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/demultiplex_input_file_list.txt
+$MELSEQ_PRISM_BIN/melseq_prism.sh -a demultiplex -l $OUT_ROOT/sample_info.txt -O $OUT_ROOT \`cat $OUT_ROOT/demultiplex_input_file_list.txt\` > $OUT_ROOT/demultiplex.log 2>&1
+if [ \$? != 0 ]; then
+   echo \"demultiplex returned an error code ( \$? )\"
+   exit 1
+fi
+if [ $ANALYSIS == \"all\" ] ; then
+   ls $OUT_ROOT/*.demultiplexed/*.fastq > $OUT_ROOT/input_file_list.txt
+fi
+" >> $OUT_ROOT/run_melseq_analysis.src
+   fi
+
+   ############# trim  ##################
+   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "trim" ) ]]; then
+      echo "
+mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/trim_input_file_list.txt
+$GBS_PRISM_BIN/melseq_prism.sh -a trim -m $SEQLENGTH_MIN -q $SEQQUAL_MIN -O $OUT_ROOT \`cat $OUT_ROOT/trim_input_file_list.txt\` > $OUT_ROOT/trim.log 2>&1
+if [ \$? != 0 ]; then
+   echo \"trim returned an error code ( \$? )\"
+   exit 1
+fi
+if [ $ANALYSIS == \"all\" ] ; then
+   ls $OUT_ROOT/trimming/*.fastq.gz > $OUT_ROOT/input_file_list.txt
+fi
+" >> $OUT_ROOT/run_melseq_analysis.src
+   fi
+
+   ############# format   ##################
+   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "format" ) ]]; then
+      echo "
+mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/format_input_file_list.txt
+$GBS_PRISM_BIN/melseq_prism.sh -a format -O $OUT_ROOT \`cat $OUT_ROOT/format_input_file_list.txt\` > $OUT_ROOT/format.log 2>&1
+if [ \$? != 0 ]; then
+   echo \"format returned an error code ( \$? )\"
+   exit 1
+fi
+if [ $ANALYSIS == \"all\" ] ; then
+   ls $OUT_ROOT/fasta/*.non-redundant.fasta > $OUT_ROOT/input_file_list.txt
+   ls $OUT_ROOT/fasta/*.non-redundant.fasta > $OUT_ROOT/kmer_input_file_list.txt
+fi
+" >> $OUT_ROOT/run_melseq_analysis.src
+   fi
+
+   ############# blast   ##################
+   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "blast" ) ]]; then
+      echo "
+mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/blast_input_file_list.txt
+$GBS_PRISM_BIN/melseq_prism.sh -a blast -s $SIMILARITY -b $BLAST_DATABASE -O $OUT_ROOT \`cat $OUT_ROOT/blast_input_file_list.txt\` > $OUT_ROOT/blast.log 2>&1
+if [ \$? != 0 ]; then
+   echo \"blast returned an error code ( \$? )\"
+   exit 1
+fi
+if [ $ANALYSIS == \"all\" ] ; then
+   ls $OUT_ROOT/blast/*.results.gz > $OUT_ROOT/input_file_list.txt
+fi
+" >> $OUT_ROOT/run_melseq_analysis.src
+   fi
+
+   ############# summary   ##################
+   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "summarise" ) ]]; then
+      echo "
+mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/summarise_input_file_list.txt
+$GBS_PRISM_BIN/melseq_prism.sh -a summarise \`cat $OUT_ROOT/summarise_input_file_list.txt\` > $OUT_ROOT/summarise.log 2>&1
+if [ \$? != 0 ]; then
+   echo \"summarie returned an error code ( \$? )\"
+   exit 1
+fi
+" >> $OUT_ROOT/run_melseq_analysis.src
+   fi
+
+   ############# kmer anlaysis   ##################
+   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "kmer_analysis" ) ]]; then
+      if [ $ANALYSIS == "all" ]; then
+         echo "
+mv $OUT_ROOT/kmer_input_file_list.txt $OUT_ROOT/input_file_list.txt
+" >> $OUT_ROOT/run_melseq_analysis.src
+      echo "
+mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/kmer_input_file_list.txt
+$GBS_PRISM_BIN/melseq_prism.sh -a kmer_analysis  \`cat $OUT_ROOT/blast_input_file_list.txt\` > $OUT_ROOT/kmer_analysis.log 2>&1
+if [ \$? != 0 ]; then
+   echo \"kmer_analysis returned an error code ( \$? )\"
+   exit 1
+fi
+" >> $OUT_ROOT/run_melseq_analysis.src
+   fi
+
+
+x="
+
+#time $MELSEQ_PRISM_BIN/melseq_prism.sh  -a trim -b /dataset/GBS_Rumen_Metagenomes/scratch/blast_analysis/GenusPlusQuinella -O $OUT_DIR $OUT_DIR/*.demultiplexed/*.fastq > $OUT_DIR/test_trim.log 2>&1
+
+#time $MELSEQ_PRISM_BIN/melseq_prism.sh  -a format -b /dataset/GBS_Rumen_Metagenomes/scratch/blast_analysis/GenusPlusQuinella -O $OUT_DIR $OUT_DIR/trimming/*.fastq.gz > $OUT_DIR/test_format.log 2>&1
+
+#time $MELSEQ_PRISM_BIN/melseq_prism.sh  -a blast -b /dataset/GBS_Rumen_Metagenomes/scratch/blast_analysis/GenusPlusQuinella -O $OUT_DIR $OUT_DIR/fasta/*.non-redundant.fasta > $OUT_DIR/test_blast.log 2>&1
+
+#time $MELSEQ_PRISM_BIN/melseq_prism.sh  -a summarise -b /dataset/GBS_Rumen_Metagenomes/scratch/blast_analysis/GenusPlusQuinella -O $OUT_DIR $OUT_DIR/blast/*.results.gz > $OUT_DIR/test_summary.log 2>&1
+
+#time $MELSEQ_PRISM_BIN/melseq_prism.sh  -a kmer_analysis  -b /dataset/GBS_Rumen_Metagenomes/scratch/blast_analysis/GenusPlusQuinella -O $OUT_DIR $OUT_DIR/fasta/*.non-redundant.fasta > $OUT_DIR/test_kmer.log 2>&1
+
+#time $MELSEQ_PRISM_BIN/melseq_prism.sh  -a blast -b /dataset/GBS_Rumen_Metagenomes/scratch/blast_analysis/GenusPlusQuinella -O $OUT_DIR /bifo/active/GBS_Rumen_Metagenomes/OLW/02_FastaSeqs/*_toBLAST.fa  > $OUT_DIR/blast.log 2>&1
+
+#time $MELSEQ_PRISM_BIN/melseq_prism.sh  -a summarise -b /dataset/GBS_Rumen_Metagenomes/scratch/blast_analysis/GenusPlusQuinella -O $OUT_DIR $OUT_DIR/blast/*.results.gz > $OUT_DIR/test_summary.log 2>&1
+
+#time $MELSEQ_PRISM_BIN/melseq_prism.sh  -a kmer_analysis  -b /dataset/GBS_Rumen_Metagenomes/scratch/blast_analysis/GenusPlusQuinella -O $OUT_DIR /bifo/active/GBS_Rumen_Metagenomes/OLW/02_FastaSeqs/*_toBLAST.fa > $OUT_DIR/test_kmer.log 2>&1
+"
+
+   echo "about to run $OUT_ROOT/run_melseq_analysis.src - i.e. : "
+   more $OUT_ROOT/run_melseq_analysis.src
+   echo "press enter to continue (or CTRL-C to cancel)"
+   read junk 
+   set -x
+   time source $OUT_ROOT/run_melseq_analysis.src > $OUT_ROOT/run_melseq_analysis.log 2>&1
+   set +x
+
+}
+
+
+get_run_opts
+run_melseq_analysis

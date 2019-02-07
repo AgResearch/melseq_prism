@@ -11,27 +11,27 @@
 # how to make kmer spectra
 ##############################################
 %.demultiplex:
-	$@.sh
+	$@.sh > $@.mk.log 2>&1
 	date > $@
 
 %.trim:
-	$@.sh
+	$@.sh > $@.mk.log 2>&1
 	date > $@
 
 %.format:
-	$@.sh
+	$@.sh > $@.mk.log 2>&1
 	date > $@
 
 %.blast:
-	$@.sh
+	$@.sh > $@.mk.log 2>&1
 	date > $@
 
 %.kmer_analysis:
-	$@.sh
+	$@.sh > $@.mk.log 2>&1
 	date > $@
 
 %.summarise:
-	$@.sh
+	$@.sh > $@.mk.log 2>&1
 	date > $@
 
 ##############################################
