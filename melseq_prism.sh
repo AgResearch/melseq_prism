@@ -212,20 +212,20 @@ function get_targets() {
       echo $file >> $OUT_DIR/input_file_list.txt
       if [ $ANALYSIS == "demultiplex" ]; then 
          file_base=`basename $file`
-         parameters_moniker=`basename $taxonomy_blast_database`
-         parameters_moniker=${parameters_moniker}.`basename taxonomy_lookup_file`
-         parameters_moniker=${parameters_moniker}.sim${similarity}
-         moniker=${file_base}.${parameters_moniker}
+         moniker=${file_base}
 
          # for demultiplex, different files are different make targets 
-         echo $OUT_DIR/$moniker.$analysis_type  >> $OUT_DIR/${analysis_type}_targets.txt
-         script=$OUT_DIR/${moniker}.${analysis_type}.sh
+         echo $OUT_DIR/$moniker.$ANALYSIS  >> $OUT_DIR/${ANALYSIS}_targets.txt
+         script=$OUT_DIR/${moniker}.${ANALYSIS}.sh
          if [ -f $script ]; then
             if [ ! $FORCE == yes ]; then
                echo "found existing gbs script $script  - will re-use (use -f to force rebuild of scripts) "
                continue
             fi
          fi
+
+
+         ################## fix , us enzyme_info_phrase
       
 
 

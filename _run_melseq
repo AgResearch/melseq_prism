@@ -15,6 +15,10 @@ function read_answer_with_default() {
    fi
 }
 
+function get_line_count() {
+   line_count=`wc -l $1 | awk '{print $1}' -`
+}
+
 function get_input_files() {
    # this gets input files to process, including the sample info 
    while [ 1 ]; do
@@ -59,15 +63,17 @@ finding files to process..."
          if [ -d $DATASET ]; then 
             if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "demultiplex" ) || ( $ANALYSIS == "trim" ) ]]; then
                ls $DATASET/*.fastq.gz $DATASET/*.fastq > $OUT_ROOT/input_file_list.txt
-               if [ $? != 0 ]; then
-                  echo "sorry could not find any data in $DATASEQ , for $ANALYSIS"
+               get_line_count $OUT_ROOT/input_file_list.txt
+               if [  $line_count == 0  ]; then
+                  echo "sorry could not find any data in $DATASET , for $ANALYSIS"
                   exit 1
                fi
             elif [ $ANALYSIS == "blast"  ]; then 
                set -x
                ls $DATASET/*.fasta $DATASET/*.fa > $OUT_ROOT/input_file_list.txt
                set +x
-               if [ $? != 0 ]; then
+               get_line_count $OUT_ROOT/input_file_list.txt
+               if [ $line_count == 0 ]; then
                   echo "sorry could not find any data in $DATASEQ , for $ANALYSIS"
                   exit 1
                fi
@@ -75,8 +81,9 @@ finding files to process..."
          else
             # assume its a hiseq library name 
             ls $HISEQ_ROOT/*/bcl2fastq/${DATASET}*.fastq.gz >  $OUT_ROOT/input_file_list.txt
-            if [ $? != 0 ]; then
-               echo "sorry could not find any data for $DATASEQ (neither a folder, nor a hiseq lane output file)"
+            get_line_count $OUT_ROOT/input_file_list.txt
+            if [ $line_count == 0 ]; then
+               echo "sorry could not find any data for $DATASET (neither a folder, nor a hiseq lane output file)"
                exit 1
             fi
          fi
@@ -97,7 +104,7 @@ files to process, or remove it so that the data folder is re-scanned for files t
       # we have files to process
       # try getting the keyfile if not there and we need it 
       if [[ ( ! -f $OUT_ROOT/sample_info.txt ) && ( $ANALYSIS == "demultiplex" ) ]]; then
-         echo "getting keyfile..."
+         echo "trying to get keyfile..."
          set -x
          $GBS_PRISM_BIN/listDBKeyfile.sh  -s $DATASET -t gbsx  > $OUT_ROOT/sample_info.txt
          if [ $? != 0 ]; then
@@ -105,6 +112,11 @@ files to process, or remove it so that the data folder is re-scanned for files t
          fi
          set +x 
          if [ ! -f $OUT_ROOT/sample_info.txt ]; then
+            echo "was unable to get keyfile for this run - please create $OUT_ROOT/sample_info.txt, containing sample barcode info, and try again"
+            exit 1
+         fi  
+         get_line_count $OUT_ROOT/sample_info.txt
+         if [ $line_count == 1 ]; then
             echo "was unable to get keyfile for this run - please create $OUT_ROOT/sample_info.txt, containing sample barcode info, and try again"
             exit 1
          else
@@ -213,16 +225,16 @@ should this run be queued on the compute cluster ? (y/n, default=y. If n, will b
    
    ####### get and check the analysis type 
    while [ 1 ] ; do
-      ANALYSIS=all
+      ANALYSIS=demultiplex
       echo "
 please give which analysis you want to start from (demultiplex, trim, format, blast, summarise, kmer_analysis, clean) (or just press enter to start from demultiplex)  
 (run_melseq will attempt to run te starting step and all steps after that )
 "
-      read_answer_with_default all
+      read_answer_with_default demultiplex
       ANALYSIS=$answer
 
       if [[ ( $ANALYSIS != "demultiplex" ) && ( $ANALYSIS != "trim" ) && ( $ANALYSIS != "format" ) && ( $ANALYSIS != "blast" ) && ( $ANALYSIS != "kmer_analysis" ) && ( $ANALYSIS != "summarise" )  ]] ; then
-         echo "analysis must be one of demultiplex, trim , format, blast, summarise , clean) "
+         echo "analysis must be one of demultiplex, trim , format, blast, summarise , kmer_analysis, clean) "
       else
          break
       fi
