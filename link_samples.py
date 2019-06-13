@@ -57,9 +57,9 @@ SampleID	Label
 961455	B73844
 961458	B73777
 
-pattern is a pattern for the link names, for example
+pattern is a pattern for the link names (and replicate number) , for example
 
-"%s_summary.txt"
+"%s.%d_summary.txt"
 
 example:
 
@@ -70,6 +70,10 @@ dry run :
 then 
 
 ./link_samples.py -k sample_to_subject.txt -p "%s.%d_summary.txt"  /dataset/gseq_processing/scratch/melseq/SQ0990/cattle/summary/*.summary
+
+or just (using the default pattern) 
+
+./link_samples.py -k sample_to_subject.txt /dataset/gseq_processing/scratch/melseq/SQ0990/cattle/summary/*.summary
 
 
     """

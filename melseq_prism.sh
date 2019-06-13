@@ -11,6 +11,7 @@ function get_opts() {
    MAX_TASKS=1
    FORCE=no
    ANALYSIS=demultiplex
+   ENZYME_INFO=""
    taxonomy_blast_database=""
    taxonomy_lookup_file=
    seqlength_min=40
@@ -224,17 +225,17 @@ function get_targets() {
             fi
          fi
 
-
-         ################## fix , us enzyme_info_phrase
-      
-
+         enzyme_info_phrase=""
+         if [ ! -z $ENZYME_INFO ]; then
+            enzyme_info_phrase="-e $ENZYME_INFO"
+         fi
 
          ############### demultiplex script
          echo "#!/bin/bash
 cd $OUT_DIR
-mkdir -p demultplex
+mkdir -p demultiplex
 # run demultiplexing
-time ./demultiplex_prism.sh -C $HPC_TYPE -x gbsx -l $SAMPLE_INFO  -e $ENZYME_INFO -O $OUT_DIR/demultplex \`cat $OUT_DIR/input_file_list.txt\` 
+time ./demultiplex_prism.sh -C $HPC_TYPE -x gbsx -l $SAMPLE_INFO  $enzyme_info_phrase  -O $OUT_DIR/demultiplex \`cat $OUT_DIR/input_file_list.txt\` 
 if [ \$? != 0 ]; then
    echo \"warning demultiplex returned an error code\"
    exit 1
@@ -352,7 +353,7 @@ fi
 echo "#!/bin/bash
 cd $OUT_DIR
 mkdir -p kmer_analysis
-$SEQ_PRISMS_BIN/kmer_prism.sh -C $HPC_TYPE -a fasta -p \"-k 6 --weighting_method tag_count\" -O $OUT_DIR/kmer_analysis \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/kmer_analysis.log 2>&1  
+$SEQ_PRISMS_BIN/kmer_prism.sh -C $HPC_TYPE -a fasta -p \"-k 6 -A --weighting_method tag_count\" -O $OUT_DIR/kmer_analysis \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/kmer_analysis.log 2>&1  
 
 if [ \$? != 0 ]; then
    echo \"warning kmer_analysis returned an error code\"

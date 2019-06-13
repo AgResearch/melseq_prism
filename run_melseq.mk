@@ -8,36 +8,41 @@
 
 
 ##############################################
-# how to make individual targets, but no dependency 
+# how to make melseq analysis (including dependencies)
 ##############################################
-%.demultiplex:
+
+%.run_all: %.run_kmer_analysis 
+	date > $@
+
+%.run_kmer_analysis: %.run_summarise
 	$@.sh > $@.mk.log 2>&1
 	date > $@
 
-%.trim:
+%.run_summarise: %.run_blast
 	$@.sh > $@.mk.log 2>&1
 	date > $@
 
-%.format:
+%.run_blast: %.run_format
 	$@.sh > $@.mk.log 2>&1
 	date > $@
 
-%.blast:
+%.run_format: %.run_trim 
 	$@.sh > $@.mk.log 2>&1
 	date > $@
 
-%.kmer_analysis:
+%.run_trim: %.run_demultiplex
 	$@.sh > $@.mk.log 2>&1
 	date > $@
 
-%.summarise:
+%.run_demultiplex:
 	$@.sh > $@.mk.log 2>&1
 	date > $@
+
 
 ##############################################
 # specify the intermediate files to keep 
 ##############################################
-.PRECIOUS:  %.demultiplex %.trim %.format %.blast %.kmer_analysis %.summarise
+.PRECIOUS: %.run_all %.run_kmer_analysis %.run_summarise %.run_blast %.run_format %.run_trim %.run_demultiplex 
 
 ##############################################
 # cleaning - not yet doing this using make  
