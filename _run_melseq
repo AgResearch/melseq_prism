@@ -438,31 +438,31 @@ function get_targets() {
    ############# demultiplex ##################
    echo "
 mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/demultiplex_input_file_list.txt
-$MELSEQ_PRISM_BIN/melseq_prism.sh -a demultiplex -l $OUT_ROOT/sample_info.txt -O $OUT_ROOT \`cat $OUT_ROOT/demultiplex_input_file_list.txt\` > $OUT_ROOT/demultiplex.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a demultiplex -l $OUT_ROOT/sample_info.txt -O $OUT_ROOT \`cat $OUT_ROOT/demultiplex_input_file_list.txt\` > $OUT_ROOT/demultiplex.log 2>&1
 if [ \$? != 0 ]; then
    echo \"demultiplex returned an error code ( \$? )\"
    exit 1
 fi
-   ls $OUT_ROOT/demultiplex/*.demultiplexed/*.fastq | grep -v undetermined > $OUT_ROOT/input_file_list.txt
+   ls $OUT_ROOT/demultiplex/*.demultiplexed/*.fastq.gz | grep -v undetermined > $OUT_ROOT/input_file_list.txt
 " > $OUT_ROOT/${project_moniker}.run_demultiplex.sh
    chmod +x $OUT_ROOT/${project_moniker}.run_demultiplex.sh
 
    ############# trim  ##################
    echo "
 mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/trim_input_file_list.txt
-$MELSEQ_PRISM_BIN/melseq_prism.sh -a trim -m $SEQLENGTH_MIN -q $SEQQUAL_MIN -O $OUT_ROOT \`cat $OUT_ROOT/trim_input_file_list.txt\` > $OUT_ROOT/trim.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a trim -m $SEQLENGTH_MIN -q $SEQQUAL_MIN -O $OUT_ROOT \`cat $OUT_ROOT/trim_input_file_list.txt\` > $OUT_ROOT/trim.log 2>&1
 if [ \$? != 0 ]; then
    echo \"trim returned an error code ( \$? )\"
    exit 1
 fi
-   ls $OUT_ROOT/trimming/*.fastq.gz > $OUT_ROOT/input_file_list.txt
+   ls $OUT_ROOT/trimming/*.fastq > $OUT_ROOT/input_file_list.txt
 " > $OUT_ROOT/${project_moniker}.run_trim.sh
    chmod +x $OUT_ROOT/${project_moniker}.run_trim.sh
 
    ############# format   ##################
    echo "
 mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/format_input_file_list.txt
-$MELSEQ_PRISM_BIN/melseq_prism.sh -a format -O $OUT_ROOT \`cat $OUT_ROOT/format_input_file_list.txt\` > $OUT_ROOT/format.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a format -O $OUT_ROOT \`cat $OUT_ROOT/format_input_file_list.txt\` > $OUT_ROOT/format.log 2>&1
 if [ \$? != 0 ]; then
    echo \"format returned an error code ( \$? )\"
    exit 1
@@ -476,7 +476,7 @@ fi
    ############# blast   ##################
    echo "
 mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/blast_input_file_list.txt
-$MELSEQ_PRISM_BIN/melseq_prism.sh -a blast -s $SIMILARITY -b $BLAST_DATABASE -O $OUT_ROOT \`cat $OUT_ROOT/blast_input_file_list.txt\` > $OUT_ROOT/blast.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a blast -s $SIMILARITY -b $BLAST_DATABASE -O $OUT_ROOT \`cat $OUT_ROOT/blast_input_file_list.txt\` > $OUT_ROOT/blast.log 2>&1
 if [ \$? != 0 ]; then
    echo \"blast returned an error code ( \$? )\"
    exit 1
@@ -489,7 +489,7 @@ fi
    ############# summary   ##################
    echo "
 mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/summarise_input_file_list.txt
-$MELSEQ_PRISM_BIN/melseq_prism.sh -a summarise -O $OUT_ROOT \`cat $OUT_ROOT/summarise_input_file_list.txt\` > $OUT_ROOT/summarise.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a summarise -O $OUT_ROOT \`cat $OUT_ROOT/summarise_input_file_list.txt\` > $OUT_ROOT/summarise.log 2>&1
 if [ \$? != 0 ]; then
    echo \"summarise returned an error code ( \$? )\"
    exit 1
@@ -503,7 +503,7 @@ fi
 if [ ! -f  $OUT_ROOT/kmer_input_file_list.txt ]; then
    mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/kmer_input_file_list.txt
 fi
-$MELSEQ_PRISM_BIN/melseq_prism.sh -a kmer_analysis  -O $OUT_ROOT \`cat $OUT_ROOT/kmer_input_file_list.txt\` > $OUT_ROOT/kmer_analysis.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a kmer_analysis  -O $OUT_ROOT \`cat $OUT_ROOT/kmer_input_file_list.txt\` > $OUT_ROOT/kmer_analysis.log 2>&1
 if [ \$? != 0 ]; then
    echo \"kmer_analysis returned an error code ( \$? )\"
    exit 1

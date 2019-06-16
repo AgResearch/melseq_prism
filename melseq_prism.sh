@@ -259,7 +259,8 @@ fi
    for file in `cat $OUT_DIR/input_file_list.txt`; do
       file_base=`basename $file .fastq.gz`
       file_dir=`dirname $file`
-      echo "cutadapt -f fastq -q $seqqual_min  -m $seqlength_min $file -o $OUT_DIR/trimming/${file_base}_trimmed.fastq.gz > $OUT_DIR/trimming/${file_base}.trimReport 2>&1" >> $OUT_DIR/trim_commands.txt
+      # dont want any more than one or 2 chunks 
+      echo "tardis -q --hpctype $HPC_TYPE  -c 999999999 cutadapt -f fastq -q $seqqual_min  -m $seqlength_min _condition_fastq_input_$file -o _condition_uncompressedfastq_output_$OUT_DIR/trimming/${file_base}_trimmed.fastq > $OUT_DIR/trimming/${file_base}.trimReport 2>&1" >> $OUT_DIR/trim_commands.txt
    done
    # the script that will be launched to launch those 
 echo "#!/bin/bash
