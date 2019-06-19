@@ -11,7 +11,11 @@
 # how to make melseq analysis (including dependencies)
 ##############################################
 
-%.run_all: %.run_kmer_analysis 
+%.run_all: %.run_html
+	date > $@
+
+%.run_html: %.run_kmer_analysis
+	$@.sh > $@.mk.log 2>&1
 	date > $@
 
 %.run_kmer_analysis: %.run_summarise

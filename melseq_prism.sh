@@ -23,8 +23,14 @@ function get_opts() {
 \n
 \n
 example:\n
-./melseq_prism.sh -n -a demultiplex -b /dataset/GBS_Rumen_Metagenomes/scratch/blast_analysis/GenusPlusQuinella -O /dataset/gseq_processing/scratch/melseq/SQ0881test /dataset/gseq_processing/scratch/melseq/SQ0881test/SQ0881_S6_L008_R1_001.fastq.demultiplexed/96148*.fastq
-
+./melseq_prism.sh -n -a all -l /dataset/gseq_processing/scratch/melseq/SQ0990_S2311_L008_R1_sample_afm.fastq.gz/sheep/sample_info.txt -b /dataset/GBS_Rumen_Metagenomes/scratch/blast_analysis/GenusPlusQuinella -O /dataset/gseq_processing/scratch/melseq/SQ0990_S2311_L008_R1_sample_afm.fastq.gz/sheep /dataset/gseq_processing/active/bin/melseq_prism/test/SQ0990_S2311_L008_R1_sample.fastq.gz \n
+\n
+./melseq_prism.sh -a html -O /dataset/gseq_processing/scratch/melseq/SQ0990_S2311_L008_R1_sample_afm.fastq.gz/sheep /dataset/gseq_processing/scratch/melseq/SQ0990_S2311_L008_R1_sample_afm.fastq.gz/sheep/\*.summary  \n
+\n
+./melseq_prism.sh -a html -O  /dataset/gseq_processing/scratch/melseq/SQ0990/sheep/by_sample \`ls /dataset/gseq_processing/scratch/melseq/SQ0990/sheep/summary/\*.summary | grep -v undetermined\` \n
+\n
+\n
+./melseq_prism.sh -a html -O  /dataset/gseq_processing/scratch/melseq/SQ0990/sheep/by_animal \`ls /dataset/gseq_processing/scratch/melseq/SQ0990/sheep/summary/\*.summary.txt | grep -v undetermined\` \n
 \n
 "
 
@@ -98,8 +104,8 @@ example:\n
 
 
 function check_opts() {
-   if [[ ( $ANALYSIS != "demultiplex" ) && ( $ANALYSIS != "trim" ) && ( $ANALYSIS != "format" ) && ( $ANALYSIS != "blast" ) && ( $ANALYSIS != "kmer_analysis" ) && ( $ANALYSIS != "summarise" )  ]] ; then
-      echo "analysis must be one of demultiplex, trim , format, blast, summarise , clean) "
+   if [[ ( $ANALYSIS != "demultiplex" ) && ( $ANALYSIS != "trim" ) && ( $ANALYSIS != "format" ) && ( $ANALYSIS != "blast" ) && ( $ANALYSIS != "kmer_analysis" ) && ( $ANALYSIS != "summarise" )  && ( $ANALYSIS != "html" ) ]] ; then
+      echo "analysis must be one of demultiplex, trim , format, blast, summarise , html, clean) "
       exit 1
    fi
 
@@ -179,13 +185,25 @@ function configure_env() {
    cp ./summarizeR_counts.code $OUT_DIR
    cp $GBS_PRISM_BIN/demultiplex_prism.sh $OUT_DIR
    cp $GBS_PRISM_BIN/demultiplex_prism.mk $OUT_DIR
-   cd $OUT_DIR
+   cp profile_prism.py $OUT_DIR
+   cp seq_prisms/data_prism.py $OUT_DIR
+   cp seq_prisms/tax_summary_heatmap.r $OUT_DIR
+
+   echo "
+export CONDA_ENVS_PATH=$CONDA_ENVS_PATH
+conda activate bioconductor
+PATH="$OUT_DIR:\$PATH"
+PYTHONPATH="$OUT_DIR:\$PYTHONPATH"
+" > $OUT_DIR/configure_bioconductor_env.src
 
    echo "
 export CONDA_ENVS_PATH=$CONDA_ENVS_PATH
 conda activate bifo-essential
 PATH="$OUT_DIR:\$PATH"
 " > $OUT_DIR/configure_cutadapt_env.src
+
+
+   cd $OUT_DIR
 
 }
 
@@ -247,7 +265,7 @@ fi
 
 
    # for other processing, all files are part of a single make target 
-   for analysis_type in trim format blast summarise kmer_analysis; do
+   for analysis_type in trim format blast summarise kmer_analysis html; do
       echo $OUT_DIR/all.$analysis_type  > $OUT_DIR/${analysis_type}_targets.txt
    done
 
@@ -363,6 +381,21 @@ fi
      " >  $OUT_DIR/all.kmer_analysis.sh
    chmod +x $OUT_DIR/all.kmer_analysis.sh
 
+
+   ################ html script
+   # summaries of the summaries 
+echo "#!/bin/bash
+cd $OUT_DIR
+mkdir -p html 
+tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --weighting_method line \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/html.log 2>&1
+tardis --hpctype $HPC_TYPE -q $OUT_DIR/profile_prism.py --summary_type summary_table --measure frequency \`cat $OUT_DIR/input_file_list.txt | awk '{printf(\"%s.taxonomy.pickle\\n\", \$1);}' -\` > $OUT_DIR/html/taxonomy_frequency_table.txt 2>>$OUT_DIR/html.log
+tardis --hpctype $HPC_TYPE --shell-include-file $OUT_DIR/configure_bioconductor_env.src Rscript --vanilla $OUT_DIR/tax_summary_heatmap.r num_profiles=60 moniker=taxonomy_frequency_table datafolder=$OUT_DIR/html >> html.log 2>&1 
+if [ \$? != 0 ]; then
+   echo \"warning html step returned an error code\"
+   exit 1
+fi
+     " >  $OUT_DIR/all.html.sh
+   chmod +x $OUT_DIR/all.html.sh
 }
 
 
@@ -383,12 +416,6 @@ function clean() {
    rm -rf $OUT_DIR/tardis_*
 }
 
-
-function html_prism() {
-   echo "tba" > $OUT_DIR/melseq_prism.html 2>&1
-}
-
-
 function main() {
    get_opts "$@"
    check_opts
@@ -402,9 +429,8 @@ function main() {
       run_prism
       if [ $? == 0 ] ; then
          clean
-         html_prism
       else
-         echo "error state from melseq run - skipping clean and html page generation"
+         echo "error state from melseq run - skipping clean "
          exit 1
       fi
    fi

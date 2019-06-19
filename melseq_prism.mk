@@ -10,6 +10,10 @@
 ##############################################
 # how to make individual targets, but no dependency 
 ##############################################
+%.html:
+	$@.sh > $@.mk.log 2>&1
+	date > $@
+
 %.demultiplex:
 	$@.sh > $@.mk.log 2>&1
 	date > $@

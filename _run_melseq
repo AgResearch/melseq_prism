@@ -91,7 +91,19 @@ files to process, or remove it so that the data folder is re-scanned for files t
             sq=`echo $base | awk -F_ '{print $1}' -`
             break
          done
-         
+         # if we could not get something like an SQ number , prompt for it
+         echo $sq | egrep -q "^SQ" > /dev/null 2>&1
+         if [ $? != 0 ]; then
+            echo "unable to guess SQ number from sequence filename - please enter SQ number if applicable"
+            read_answer_with_default none
+            if [ $answer == "none" ]; then
+               echo "OK, please create $OUT_ROOT/sample_info.txt, containing sample barcode info, and try again"
+               exit 1
+            else
+               sq=$answer
+            fi
+         fi
+               
          set -x
          if [ -z "$COHORT" ]; then 
             $GBS_PRISM_BIN/listDBKeyfile.sh -s $sq -t gbsx  | awk '{if(NR>1) print}' - > $OUT_ROOT/sample_info.txt
@@ -169,6 +181,8 @@ e.g.
 
 /dataset/gseq_processing/active/bin/melseq_prism/test/SQ0990_S2311_L008_R1_sample.fastq.gz
 
+/dataset/gseq_processing/scratch/illumina/hiseq/190614_D00390_0467_ACDR6TANXX/SampleSheet/bcl2fastq/Undetermined_S0_L004_R1_001.fastq.gz
+
 "
       read DATASET
       if [ ! -z "$DATASET" ]; then 
@@ -242,13 +256,13 @@ should this run be queued on the compute cluster ? (y/n, default=y. If n, will b
    while [ 1 ] ; do
       ANALYSIS=all
       echo "
-please give which analysis you want to build (all, demultiplex, trim, format, blast, summarise, kmer_analysis, clean) (or just press enter to do them all)  
+please give which analysis you want to build (all, demultiplex, trim, format, blast, summarise, kmer_analysis, html, clean) (or just press enter to do them all)  
 "
       read_answer_with_default all
       ANALYSIS=$answer
 
-      if [[ ( $ANALYSIS != "all" ) && ( $ANALYSIS != "demultiplex" ) && ( $ANALYSIS != "trim" ) && ( $ANALYSIS != "format" ) && ( $ANALYSIS != "blast" ) && ( $ANALYSIS != "kmer_analysis" ) && ( $ANALYSIS != "summarise" )  ]] ; then
-         echo "analysis must be one of demultiplex, trim , format, blast, summarise , kmer_analysis, clean) "
+      if [[ ( $ANALYSIS != "all" ) && ( $ANALYSIS != "demultiplex" ) && ( $ANALYSIS != "trim" ) && ( $ANALYSIS != "format" ) && ( $ANALYSIS != "blast" ) && ( $ANALYSIS != "kmer_analysis" ) && ( $ANALYSIS != "summarise" ) && ( $ANALYSIS != "html" )  ]] ; then
+         echo "analysis must be one of demultiplex, trim , format, blast, summarise , kmer_analysis, html, clean) "
       else
          break
       fi
@@ -261,7 +275,7 @@ please give which analysis you want to build (all, demultiplex, trim, format, bl
    get_input_files
 
 
-   ls $OUT_ROOT/*.demultiplexed/*  $OUT_ROOT/trimming/*  $OUT_ROOT/fasta/* $OUT_ROOT/blast/* $OUT_ROOT/summary/* $OUT_ROOT/kmer_ananlysis/* > /dev/null 2>&1
+   ls $OUT_ROOT/*.demultiplexed/*  $OUT_ROOT/trimming/*  $OUT_ROOT/fasta/* $OUT_ROOT/blast/* $OUT_ROOT/summary/* $OUT_ROOT/kmer_ananlysis/* $OUT_ROOT/html/*  > /dev/null 2>&1
    if [ $? == 0 ] ; then
       echo "found some existing results under $OUT_ROOT - are you sure you want to continue (e.g. complete an interrupted run) ? (y/n)"
       read_answer_with_default n
@@ -390,13 +404,13 @@ function configure_env() {
    cp $MELSEQ_PRISM_BIN/run_melseq.mk $OUT_ROOT
    echo "
 max_tasks=50
-jobtemplatefile = \"$OUT_DIR/larger_mem_slurm_array_job\"
-" > $OUT_DIR/tardis_demultiplex.toml
-   if [ -f  $OUT_DIR/tardis.toml ]; then
-      cp $OUT_DIR/tardis.toml $OUT_DIR/tardis.toml.orig
+jobtemplatefile = \"$OUT_ROOT/larger_mem_slurm_array_job\"
+" > $OUT_ROOT/tardis_demultiplex.toml
+   if [ -f  $OUT_ROOT/tardis.toml ]; then
+      cp $OUT_ROOT/tardis.toml $OUT_ROOT/tardis.toml.orig
    fi
-   cp  $OUT_DIR/tardis_demultiplex.toml $OUT_DIR/tardis.toml
-   cp $MELSEQ_PRISM_BIN/etc/larger_mem_slurm_array_job $OUT_DIR
+   cp  $OUT_ROOT/tardis_demultiplex.toml $OUT_ROOT/tardis.toml
+   cp $MELSEQ_PRISM_BIN/etc/larger_mem_slurm_array_job $OUT_ROOT
 }
 
 
@@ -423,7 +437,7 @@ function get_targets() {
       
 
 
-   for analysis_type in all demultiplex trim format blast summarise kmer_analysis clean; do
+   for analysis_type in all demultiplex trim format blast summarise kmer_analysis html clean; do
       echo $OUT_ROOT/$project_moniker.run_${analysis_type}  >> $OUT_ROOT/run_${analysis_type}_targets.txt
       script=$OUT_ROOT/${project_moniker}.run_${analysis_type}.sh
       if [ -f $script ]; then
@@ -437,37 +451,35 @@ function get_targets() {
 
    ############# demultiplex ##################
    echo "
-mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/demultiplex_input_file_list.txt
+cp $OUT_ROOT/input_file_list.txt $OUT_ROOT/demultiplex_input_file_list.txt
 $MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a demultiplex -l $OUT_ROOT/sample_info.txt -O $OUT_ROOT \`cat $OUT_ROOT/demultiplex_input_file_list.txt\` > $OUT_ROOT/demultiplex.log 2>&1
 if [ \$? != 0 ]; then
    echo \"demultiplex returned an error code ( \$? )\"
    exit 1
 fi
-   ls $OUT_ROOT/demultiplex/*.demultiplexed/*.fastq.gz | grep -v undetermined > $OUT_ROOT/input_file_list.txt
+   ls $OUT_ROOT/demultiplex/*.demultiplexed/*.fastq.gz | grep -v undetermined > $OUT_ROOT/trim_input_file_list.txt 
 " > $OUT_ROOT/${project_moniker}.run_demultiplex.sh
    chmod +x $OUT_ROOT/${project_moniker}.run_demultiplex.sh
 
    ############# trim  ##################
    echo "
-mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/trim_input_file_list.txt
 $MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a trim -m $SEQLENGTH_MIN -q $SEQQUAL_MIN -O $OUT_ROOT \`cat $OUT_ROOT/trim_input_file_list.txt\` > $OUT_ROOT/trim.log 2>&1
 if [ \$? != 0 ]; then
    echo \"trim returned an error code ( \$? )\"
    exit 1
 fi
-   ls $OUT_ROOT/trimming/*.fastq > $OUT_ROOT/input_file_list.txt
+   ls $OUT_ROOT/trimming/*.fastq > $OUT_ROOT/format_input_file_list.txt 
 " > $OUT_ROOT/${project_moniker}.run_trim.sh
    chmod +x $OUT_ROOT/${project_moniker}.run_trim.sh
 
    ############# format   ##################
    echo "
-mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/format_input_file_list.txt
 $MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a format -O $OUT_ROOT \`cat $OUT_ROOT/format_input_file_list.txt\` > $OUT_ROOT/format.log 2>&1
 if [ \$? != 0 ]; then
    echo \"format returned an error code ( \$? )\"
    exit 1
 fi
-   ls $OUT_ROOT/fasta/*.non-redundant.fasta > $OUT_ROOT/input_file_list.txt
+   ls $OUT_ROOT/fasta/*.non-redundant.fasta > $OUT_ROOT/blast_input_file_list.txt
    ls $OUT_ROOT/fasta/*.non-redundant.fasta > $OUT_ROOT/kmer_input_file_list.txt
 " > $OUT_ROOT/${project_moniker}.run_format.sh
    chmod +x $OUT_ROOT/${project_moniker}.run_format.sh
@@ -475,34 +487,30 @@ fi
 
    ############# blast   ##################
    echo "
-mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/blast_input_file_list.txt
 $MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a blast -s $SIMILARITY -b $BLAST_DATABASE -O $OUT_ROOT \`cat $OUT_ROOT/blast_input_file_list.txt\` > $OUT_ROOT/blast.log 2>&1
 if [ \$? != 0 ]; then
    echo \"blast returned an error code ( \$? )\"
    exit 1
 fi
-   ls $OUT_ROOT/blast/*.results.gz > $OUT_ROOT/input_file_list.txt
+   ls $OUT_ROOT/blast/*.results.gz > $OUT_ROOT/summarise_input_file_list.txt
 " > $OUT_ROOT/${project_moniker}.run_blast.sh
    chmod +x $OUT_ROOT/${project_moniker}.run_blast.sh
    
 
    ############# summary   ##################
    echo "
-mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/summarise_input_file_list.txt
 $MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a summarise -O $OUT_ROOT \`cat $OUT_ROOT/summarise_input_file_list.txt\` > $OUT_ROOT/summarise.log 2>&1
 if [ \$? != 0 ]; then
    echo \"summarise returned an error code ( \$? )\"
    exit 1
 fi
+   ls $OUT_ROOT/summary/*.summary > $OUT_ROOT/html_input_file_list.txt
 " > $OUT_ROOT/${project_moniker}.run_summarise.sh
    chmod +x $OUT_ROOT/${project_moniker}.run_summarise.sh
 
 
    ############# kmer anlaysis   ##################
    echo "
-if [ ! -f  $OUT_ROOT/kmer_input_file_list.txt ]; then
-   mv $OUT_ROOT/input_file_list.txt $OUT_ROOT/kmer_input_file_list.txt
-fi
 $MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a kmer_analysis  -O $OUT_ROOT \`cat $OUT_ROOT/kmer_input_file_list.txt\` > $OUT_ROOT/kmer_analysis.log 2>&1
 if [ \$? != 0 ]; then
    echo \"kmer_analysis returned an error code ( \$? )\"
@@ -510,6 +518,17 @@ if [ \$? != 0 ]; then
 fi
 " > $OUT_ROOT/${project_moniker}.run_kmer_analysis.sh
    chmod +x $OUT_ROOT/${project_moniker}.run_kmer_analysis.sh
+
+   ############# html   ##################
+   echo "
+$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a html  -O $OUT_ROOT \`cat $OUT_ROOT/html_input_file_list.txt\` > $OUT_ROOT/html_summary.log 2>&1
+if [ \$? != 0 ]; then
+   echo \"html_summary returned an error code ( \$? )\"
+   exit 1
+fi
+" > $OUT_ROOT/${project_moniker}.run_html.sh
+   chmod +x $OUT_ROOT/${project_moniker}.run_html.sh
+
 
 
 }
