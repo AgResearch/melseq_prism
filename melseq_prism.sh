@@ -32,6 +32,7 @@ example:\n
 \n
 ./melseq_prism.sh -a html -O  /dataset/gseq_processing/scratch/melseq/SQ0990/sheep/by_animal \`ls /dataset/gseq_processing/scratch/melseq/SQ0990/sheep/summary/\*.summary.txt | grep -v undetermined\` \n
 \n
+ ./melseq_prism.sh  -a html -O /dataset/gseq_processing/scratch/melseq/SQ0990/cattle/by_animal \`ls /dataset/gseq_processing/scratch/melseq/SQ0990/cattle/summary/\*_summary.txt | grep -v undetermined\` \n
 "
 
    # defaults:
@@ -387,9 +388,17 @@ fi
 echo "#!/bin/bash
 cd $OUT_DIR
 mkdir -p html 
+# summaries at genus and species level for the plots
 tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --weighting_method line \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/html.log 2>&1
 tardis --hpctype $HPC_TYPE -q $OUT_DIR/profile_prism.py --summary_type summary_table --measure frequency \`cat $OUT_DIR/input_file_list.txt | awk '{printf(\"%s.taxonomy.pickle\\n\", \$1);}' -\` > $OUT_DIR/html/taxonomy_frequency_table.txt 2>>$OUT_DIR/html.log
 tardis --hpctype $HPC_TYPE --shell-include-file $OUT_DIR/configure_bioconductor_env.src Rscript --vanilla $OUT_DIR/tax_summary_heatmap.r num_profiles=60 moniker=taxonomy_frequency_table datafolder=$OUT_DIR/html >> html.log 2>&1 
+# 
+# now do summaries just at genus level for the tabular output - i.e. just repeat above , but pass in the 
+# non-default column(s) you want summarised. (Note that the column numbering is zero based )
+
+tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --weighting_method line --columns 6 \`cat $OUT_DIR/input_file_list.txt\` >> $OUT_DIR/html.log 2>&1
+tardis --hpctype $HPC_TYPE -q $OUT_DIR/profile_prism.py --summary_type summary_table --measure frequency \`cat $OUT_DIR/input_file_list.txt | awk '{printf(\"%s.taxonomy.pickle\\n\", \$1);}' -\` > $OUT_DIR/html/taxonomy_genus_frequency_table.txt 2>>$OUT_DIR/html.log
+
 if [ \$? != 0 ]; then
    echo \"warning html step returned an error code\"
    exit 1

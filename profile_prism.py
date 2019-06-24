@@ -127,6 +127,11 @@ example :
 
 ./profile_prism.py --summary_type summary_table --measure frequency /dataset/gseq_processing/scratch/melseq/SQ0990_S2311_L008_R1_sample_afm.fastq.gz/sheep/summary/*.pickle
 
+./profile_prism.py --weighting_method line --columns 6 /dataset/gseq_processing/scratch/melseq/SQ0990/cattle/summary/*_summary.txt
+
+./profile_prism.py --summary_type summary_table  --measure frequency /dataset/gseq_processing/scratch/melseq/SQ0990/cattle/summary/*_summary.txt.taxonomy.pickle > /dataset/gseq_processing/scratch/melseq/SQ0990/cattle/by_animal/html/taxonomy_genus_frequency_table.txt
+
+
 """
 
     parser = argparse.ArgumentParser(description=description, epilog=long_description, formatter_class = argparse.RawDescriptionHelpFormatter)
