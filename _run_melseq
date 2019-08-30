@@ -191,7 +191,10 @@ e.g.
 
    done
 
-   DATASET_BASE=`basename $DATASET`
+   for file in `ls $DATASET`; do
+      DATASET_BASE=`basename $file`
+      break
+   done 
 
 
    ####### get and check cohort 
@@ -427,7 +430,15 @@ function get_targets() {
 
    rm -f $OUT_ROOT/*_targets.txt
 
-   project_moniker=`basename $DATASET`
+   project_moniker=""
+   for file in `ls $DATASET`; do
+      if [ ! -z $project_moniker ]; then
+         project_moniker="${project_moniker}_etc"
+         break
+      else
+         project_moniker=`basename $file`
+      fi
+   done 
 
    if [ -z "$COHORT" ]; then
       project_moniker=${project_moniker}.all

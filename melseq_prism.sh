@@ -278,9 +278,33 @@ fi
    for file in `cat $OUT_DIR/input_file_list.txt`; do
       file_base=`basename $file .fastq.gz`
       file_dir=`dirname $file`
+      file_dir=`basename $file_dir`
       # dont want any more than one or 2 chunks 
-      echo "tardis -q --hpctype $HPC_TYPE  -c 999999999 cutadapt -f fastq -q $seqqual_min  -m $seqlength_min _condition_fastq_input_$file -o _condition_uncompressedfastq_output_$OUT_DIR/trimming/${file_base}_trimmed.fastq > $OUT_DIR/trimming/${file_base}.trimReport 2>&1" >> $OUT_DIR/trim_commands.txt
+      # need to include file_dir in output base name as may be processing multiple folders - assume distinct parent folders but check this below
+      echo "tardis -q --hpctype $HPC_TYPE  -c 999999999 cutadapt -f fastq -q $seqqual_min  -m $seqlength_min _condition_fastq_input_$file -o _condition_uncompressedfastq_output_$OUT_DIR/trimming/${file_dir}_${file_base}_trimmed.fastq > $OUT_DIR/trimming/${file_dir}_${file_base}.trimReport 2>&1" >> $OUT_DIR/trim_commands.txt
    done
+
+   # check we have same number of output file names as commands
+   rm -f $OUT_DIR/name_check.tmp
+   for file in `cat $OUT_DIR/input_file_list.txt`; do
+      file_base=`basename $file .fastq.gz`
+      file_dir=`dirname $file`
+      file_dir=`basename $file_dir`
+      echo $OUT_DIR/trimming/${file_dir}_${file_base}_trimmed.fastq >> $OUT_DIR/name_check.tmp
+   done
+   num_out=`sort -u $OUT_DIR/name_check.tmp | wc -l | awk '{print $1}' -`
+   num_in=`wc -l $OUT_DIR/trim_commands.txt | awk '{print $1}' -`
+   if [ $num_in != $num_out ]; then
+      echo "
+*** error - there are more/less trimmed output filenames than there are trim commands ! You may need 
+*** to rename one of your input folders to avoid output name collisions.
+*** ref $OUT_DIR/name_check.tmp for distinct output names, and 
+*** $OUT_DIR/trim_commands.txt for input file processing
+"
+      exit 1
+   fi
+
+
    # the script that will be launched to launch those 
 echo "#!/bin/bash
 cd $OUT_DIR

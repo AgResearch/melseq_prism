@@ -7,9 +7,9 @@
 #
 
 
-##############################################
-# how to make melseq analysis (including dependencies)
-##############################################
+####################################################################
+# this used by the interactive script to sequence a run of all steps
+####################################################################
 
 %.run_all: %.run_html
 	date > $@
