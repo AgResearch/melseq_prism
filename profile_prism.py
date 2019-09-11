@@ -84,7 +84,14 @@ def locus_cmp(x,y):
         ord = cmp(x[1], y[1])
     return ord
 
-def get_samples_tax_distribution(sample_tax_summaries, measure):
+def parse_sample_moniker(sample_moniker, sample_moniker_regexp):
+    m = re.search(sample_moniker_regexp, sample_moniker)
+    if m is None:
+        return sample_moniker
+    else:
+        return m.groups()[0]
+
+def get_samples_tax_distribution(sample_tax_summaries, measure, sample_moniker_regexp):
     tax_bins = [ prism.load(sample_tax_summary).get_spectrum().keys() for sample_tax_summary in sample_tax_summaries ]
     
     tax_bins =  list ( set(  reduce(lambda x,y:x+y, tax_bins ) ) ) 
@@ -98,7 +105,8 @@ def get_samples_tax_distribution(sample_tax_summaries, measure):
         samples_tax_distributions = [[item[0] for item in tax_bins]] + [ prism.load(sample_tax_summary).get_unsigned_information_projection(tax_bins) for sample_tax_summary in sample_tax_summaries]
 
     td_iter = itertools.izip(*samples_tax_distributions)
-    heading = itertools.izip(*[["taxonomy"]]+[[re.split("\.",os.path.basename(path.strip()))[0]] for path in sample_tax_summaries])
+    #heading = itertools.izip(*[["taxonomy"]]+[[re.split("\.",os.path.basename(path.strip()))[0]] for path in sample_tax_summaries])
+    heading = itertools.izip(*[["taxonomy"]]+[[parse_sample_moniker(os.path.basename(path.strip()), sample_moniker_regexp) ] for path in sample_tax_summaries])
     td_iter = itertools.chain(heading, td_iter)
 
     for record in td_iter:
@@ -144,8 +152,7 @@ example :
     parser.add_argument('--columns' , dest='columns', default="5,6" ,help="comma separated list of columns to use to define bins")
     parser.add_argument('--moniker' , dest='moniker', default="" ,help="optional summmary moniker e.g. L1 L2 etc")    
     parser.add_argument('--weighting_method' , dest='weighting_method', default="parse",choices=["parse", "line"],help="weighting method - either parse weight from seq suffix, or just count lines")
-
-
+    parser.add_argument('--sample_moniker_regexp', dest='sample_moniker_regexp', default="^(\S+)_trimmed.fastq.non-redundant.fasta.blastn.GenusPlusQuinella.num_threads4outfmt6stdqlenevalue0.02.summary.taxonomy.pickle")
     args = vars(parser.parse_args())
     return args
 
@@ -166,7 +173,7 @@ def main():
         debug(args)
     elif args["summary_type"] == "summary_table" :
         #print "summarising %s"%str(args["filename"])
-        get_samples_tax_distribution(args["filenames"], args["measure"])
+        get_samples_tax_distribution(args["filenames"], args["measure"], args["sample_moniker_regexp"])
 
     
 
