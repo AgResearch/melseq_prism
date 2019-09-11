@@ -17,6 +17,7 @@ function get_opts() {
    seqlength_min=40
    seqqual_min=20
    similarity=0.02
+   adapter_to_trim=""
    help_text="
 \n
 ./melseq_prism.sh  [-h] [-n] [-d] -a analysis -b blast_database [-s similarity] [-m min_length] [-q min_qual]  [-C local|slurm ] -O outdir input_file_names\n
@@ -36,7 +37,7 @@ example:\n
 "
 
    # defaults:
-   while getopts ":nhdfO:C:b:t:m:s:q:a:l:e:" opt; do
+   while getopts ":nhdfO:C:b:t:m:s:q:a:l:e:A:" opt; do
    case $opt in
        n)
          DRY_RUN=yes
@@ -51,9 +52,6 @@ example:\n
        f)
          FORCE=yes
          ;;
-       a)
-         ANALYSIS=$OPTARG
-         ;;
        O)
          OUT_DIR=$OPTARG
          ;;
@@ -63,6 +61,9 @@ example:\n
        e)
          ENZYME_INFO=$OPTARG
          ;;
+       a)
+         ANALYSIS=$OPTARG
+         ;;
        l)
          SAMPLE_INFO=$OPTARG
          ;;
@@ -71,6 +72,9 @@ example:\n
          ;;
        q)
          seqqual_min=$OPTARG
+         ;;
+       A)
+         adapter_to_trim=$OPTARG
          ;;
        b)
          taxonomy_blast_database=$OPTARG
@@ -274,6 +278,10 @@ fi
    # trims seqs
    # the trim script will launch a command file that we also prepare here
    # generate command file:
+   adapter_phrase=""
+   if [ ! -z "$adapter_to_trim" ]; then
+      adapter_phrase="-a $adapter_to_trim "
+   fi
    rm -f $OUT_DIR/trim_commands.txt
    for file in `cat $OUT_DIR/input_file_list.txt`; do
       file_base=`basename $file .fastq.gz`
@@ -281,7 +289,7 @@ fi
       file_dir=`basename $file_dir`
       # dont want any more than one or 2 chunks 
       # need to include file_dir in output base name as may be processing multiple folders - assume distinct parent folders but check this below
-      echo "tardis -q --hpctype $HPC_TYPE  -c 999999999 cutadapt -f fastq -q $seqqual_min  -m $seqlength_min _condition_fastq_input_$file -o _condition_uncompressedfastq_output_$OUT_DIR/trimming/${file_dir}_${file_base}_trimmed.fastq > $OUT_DIR/trimming/${file_dir}_${file_base}.trimReport 2>&1" >> $OUT_DIR/trim_commands.txt
+      echo "tardis -q --hpctype $HPC_TYPE  -c 999999999 cutadapt $adapter_phrase -f fastq -q $seqqual_min  -m $seqlength_min _condition_fastq_input_$file -o _condition_uncompressedfastq_output_$OUT_DIR/trimming/${file_dir}_${file_base}_trimmed.fastq > $OUT_DIR/trimming/${file_dir}_${file_base}.trimReport 2>&1" >> $OUT_DIR/trim_commands.txt
    done
 
    # check we have same number of output file names as commands
