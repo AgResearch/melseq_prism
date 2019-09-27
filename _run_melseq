@@ -320,7 +320,6 @@ please specify the similarity (as an evalue) to use for clustering (or just pres
          python -c "print float('$SIMILARITY')" >/dev/null 2>&1
          if [ $? != 0 ]; then
             echo "looks like similarity requested ( $SIMILARITY ) is not a number"
-            exit 1
          else
             break
          fi
@@ -343,7 +342,6 @@ please specify the minimum seq length (or just press enter to use default, 40)
          python -c "print float('$SEQLENGTH_MIN')" >/dev/null 2>&1
          if [ $? != 0 ]; then
             echo "looks like minimum seqlength requested ( $SEQLENGTH_MIN ) is not a number"
-            exit 1
          else
             break
          fi
@@ -366,7 +364,6 @@ please specify the minimum seq quality (or just press enter to use default, 20)
          python -c "print float('$SEQQUAL_MIN')" >/dev/null 2>&1
          if [ $? != 0 ]; then
             echo "looks like minimum seq qual requested ( $SEQQUAL_MIN ) is not a number"
-            exit 1
          else
             break
          fi
@@ -375,6 +372,46 @@ please specify the minimum seq quality (or just press enter to use default, 20)
       echo "will use minimum seq qual $SEQQUAL_MIN"
    fi
 
+   ####### get and check the blast wordsize quality to use
+   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "trim" ) ]]; then
+      while [ 1 ] ; do
+         WORDSIZE=11
+         echo "
+please specify the blast wordsize to use (or just press enter to use default, 11)
+"
+         read_answer_with_default 11
+         WORDSIZE=$answer
+
+         python -c "print float('$WORDSIZE')" >/dev/null 2>&1
+         if [ $? != 0 ]; then
+            echo "looks like wordsize requested ( $WORDSIZE ) is not a number"
+         else
+            break
+         fi
+      done
+
+      echo "will use blast wordsize $WORDSIZE"
+   fi
+
+   ####### get and check the blast task to use
+   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "trim" ) ]]; then
+      while [ 1 ] ; do
+         BLAST_TASK=blastn
+         echo "
+please specify the blast task to use (either blastn or megablast - just press enter to use default, blastn)
+"
+         read_answer_with_default blastn
+         BLAST_TASK=$answer
+
+         if [[ ( $BLAST_TASK != blastn ) && ( $BLAST_TASK != megablast ) ]]; then
+            echo "blast task must be blastn or megablast"
+         else
+            break
+         fi
+      done
+
+      echo "will use blast task $BLAST_TASK"
+   fi
 
    ####### check whether want a dry run 
    echo "
@@ -498,7 +535,7 @@ fi
 
    ############# blast   ##################
    echo "
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a blast -s $SIMILARITY -b $BLAST_DATABASE -O $OUT_ROOT \`cat $OUT_ROOT/blast_input_file_list.txt\` > $OUT_ROOT/blast.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a blast -s $SIMILARITY -b $BLAST_DATABASE -w $WORDSIZE -T $BLAST_TASK -O $OUT_ROOT \`cat $OUT_ROOT/blast_input_file_list.txt\` > $OUT_ROOT/blast.log 2>&1
 if [ \$? != 0 ]; then
    echo \"blast returned an error code ( \$? )\"
    exit 1

@@ -17,10 +17,12 @@ function get_opts() {
    seqlength_min=40
    seqqual_min=20
    similarity=0.02
+   wordsize=11
+   blast_task=blastn
    adapter_to_trim=""
    help_text="
 \n
-./melseq_prism.sh  [-h] [-n] [-d] -a analysis -b blast_database [-s similarity] [-m min_length] [-q min_qual]  [-C local|slurm ] -O outdir input_file_names\n
+./melseq_prism.sh  [-h] [-n] [-d] -a analysis -b blast_database [-w wordsize (11)] [-T blastn|megablast (blastn)] -s similarity (.02)] [-m min_length (40)] [-q min_qual (20)]  [-C local|slurm (slurm)] -O outdir input_file_names\n
 \n
 \n
 example:\n
@@ -37,7 +39,7 @@ example:\n
 "
 
    # defaults:
-   while getopts ":nhdfO:C:b:t:m:s:q:a:l:e:A:" opt; do
+   while getopts ":nhdfO:C:b:t:m:s:q:a:l:e:A:w:T:" opt; do
    case $opt in
        n)
          DRY_RUN=yes
@@ -72,6 +74,12 @@ example:\n
          ;;
        q)
          seqqual_min=$OPTARG
+         ;;
+       w)
+         wordsize=$OPTARG
+         ;;
+       T)
+         blast_task=$OPTARG
          ;;
        A)
          adapter_to_trim=$OPTARG
@@ -126,6 +134,10 @@ function check_opts() {
       echo "HPC_TYPE must be one of local, slurm"
       exit 1
    fi
+   if [[ $blast_task != "blastn" && $blast_task != "megablast" ]]; then
+      echo "HPC_TYPE must be one of local, slurm"
+      exit 1
+   fi
    if [ ! -z $taxonomy_blast_database ]; then
       if [ ! -f ${taxonomy_blast_database}.nin  ]; then
          echo "bad blast database (cant see ${taxonomy_blast_database}.nin ) (you might need to supply the full path ?)"
@@ -145,6 +157,11 @@ function check_opts() {
    python -c "print float('$seqqual_min')" >/dev/null 2>&1
    if [ $? != 0 ]; then
       echo "looks like min seq qual requested ( $seqqal_min ) is not a number"
+      exit 1
+   fi
+   python -c "print float('$wordsize')" >/dev/null 2>&1
+   if [ $? != 0 ]; then
+      echo "looks like wordsize requested ( $wordsize ) is not a number"
       exit 1
    fi
    if [ ! -f $SAMPLE_INFO ]; then
@@ -170,6 +187,8 @@ function echo_opts() {
   echo similarity=$similarity
   echo seqqal_min=$seqqal_min
   echo seqlength_min=$seqlength_min
+  echo wordsize=$wordsize
+  echo blast_task=$blast_task
   echo SAMPLE_INFO=$SAMPLE_INFO
   echo ENZYME_INFO=$ENZYME_INFO
   echo ANALYSIS=$ANALYSIS
@@ -367,7 +386,7 @@ fi
 echo "#!/bin/bash
 cd $OUT_DIR
 mkdir -p blast
-$SEQ_PRISMS_BIN/align_prism.sh -C $HPC_TYPE  -f -a blastn -r $taxonomy_blast_database -p \"-num_threads 4 -outfmt \\'6 std qlen \\' -evalue $similarity\"  -O $OUT_DIR/blast \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/blast.log 2>&1 
+$SEQ_PRISMS_BIN/align_prism.sh -C $HPC_TYPE  -f -a blastn -r $taxonomy_blast_database -p \"-num_threads 4 -task $blast_task -word_size $wordsize -outfmt \\'6 std qlen \\' -evalue $similarity\"  -O $OUT_DIR/blast \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/blast.log 2>&1 
 
 if [ \$? != 0 ]; then
    echo \"warning blast returned an error code\"
