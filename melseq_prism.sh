@@ -17,12 +17,12 @@ function get_opts() {
    seqlength_min=40
    seqqual_min=20
    similarity=0.02
-   wordsize=11
+   wordsize=16
    blast_task=blastn
    adapter_to_trim=""
    help_text="
 \n
-./melseq_prism.sh  [-h] [-n] [-d] -a analysis -b blast_database [-w wordsize (11)] [-T blastn|megablast (blastn)] -s similarity (.02)] [-m min_length (40)] [-q min_qual (20)]  [-C local|slurm (slurm)] -O outdir input_file_names\n
+./melseq_prism.sh  [-h] [-n] [-d] -a analysis -b blast_database [-w wordsize (16)] [-T blastn|megablast (blastn)] -s similarity (.02)] [-m min_length (40)] [-q min_qual (20)]  [-C local|slurm (slurm)] -O outdir input_file_names\n
 \n
 \n
 example:\n

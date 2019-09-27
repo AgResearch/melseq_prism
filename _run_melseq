@@ -375,11 +375,11 @@ please specify the minimum seq quality (or just press enter to use default, 20)
    ####### get and check the blast wordsize quality to use
    if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "trim" ) ]]; then
       while [ 1 ] ; do
-         WORDSIZE=11
+         WORDSIZE=16
          echo "
-please specify the blast wordsize to use (or just press enter to use default, 11)
+please specify the blast wordsize to use (or just press enter to use default, 16)
 "
-         read_answer_with_default 11
+         read_answer_with_default 16
          WORDSIZE=$answer
 
          python -c "print float('$WORDSIZE')" >/dev/null 2>&1
