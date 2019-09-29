@@ -372,8 +372,8 @@ please specify the minimum seq quality (or just press enter to use default, 20)
       echo "will use minimum seq qual $SEQQUAL_MIN"
    fi
 
-   ####### get and check the blast wordsize quality to use
-   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "trim" ) ]]; then
+   ####### get and check the blast wordsize  to use
+   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "blast" ) ]]; then
       while [ 1 ] ; do
          WORDSIZE=16
          echo "
@@ -394,7 +394,7 @@ please specify the blast wordsize to use (or just press enter to use default, 16
    fi
 
    ####### get and check the blast task to use
-   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "trim" ) ]]; then
+   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "blast" ) ]]; then
       while [ 1 ] ; do
          BLAST_TASK=blastn
          echo "
