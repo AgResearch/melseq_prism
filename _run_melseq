@@ -604,6 +604,10 @@ function run_prism() {
    cd $OUT_ROOT
 
    echo "
+export SEQ_PRISMS_BIN=/dataset/gseq_processing/active/bin/melseq_prism/seq_prisms
+export GBS_PRISM_BIN=/dataset/gseq_processing/active/bin/gbs_prism
+export MELSEQ_PRISM_BIN=/dataset/gseq_processing/active/bin/melseq_prism
+export HISEQ_ROOT=/dataset/gseq_processing/scratch/illumina/hiseq
 cd $OUT_ROOT
 time make -f run_melseq.mk -d -k  --no-builtin-rules -j 16 \`cat $OUT_ROOT/run_${ANALYSIS}_targets.txt\` > $OUT_ROOT/run_${ANALYSIS}.log 2>&1
 " > $OUT_ROOT/restart.src
@@ -644,9 +648,7 @@ function main() {
    check_env
    configure_env
 
-   if [ $ANALYSIS == "html" ]; then
-      html_prism
-   elif [ $ANALYSIS == "clientreport" ]; then
+   if [ $ANALYSIS == "clientreport" ]; then
       clientreport_prism
    else
       get_targets
