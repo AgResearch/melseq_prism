@@ -361,8 +361,8 @@ fi
       file_base=`basename $file .fastq.gz`
       file_dir=`dirname $file`
       # dont want any more than one or 2 chunks 
-      echo "tardis -q --hpctype $HPC_TYPE -c 999999999 cat _condition_fastq2fasta_input_$file | $OUT_DIR/add_sample_name.py $file_base > $OUT_DIR/fasta/${file_base}.fasta 2>&1" >> $OUT_DIR/format_commands.txt
-      echo "cat $OUT_DIR/fasta/${file_base}.fasta | $OUT_DIR/countUniqueReads.sh  > $OUT_DIR/fasta/${file_base}.non-redundant.fasta 2>&1" >> $OUT_DIR/count_commands.txt
+      echo "tardis -d $OUT_DIR/fasta -q --hpctype $HPC_TYPE -c 999999999 cat _condition_fastq2fasta_input_$file | $OUT_DIR/add_sample_name.py $file_base > $OUT_DIR/fasta/${file_base}.fasta 2>$OUT_DIR/fasta/${file_base}.fasta.stderr " >> $OUT_DIR/format_commands.txt
+      echo "cat $OUT_DIR/fasta/${file_base}.fasta | $OUT_DIR/countUniqueReads.sh  > $OUT_DIR/fasta/${file_base}.non-redundant.fasta 2>$OUT_DIR/fasta/${file_base}.non-redundant.fasta.stderr " >> $OUT_DIR/count_commands.txt
    done
    # the script that will be launched to launch those 
 echo "#!/bin/bash
