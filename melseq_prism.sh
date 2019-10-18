@@ -274,6 +274,9 @@ function get_targets() {
 
          ############### demultiplex script
          echo "#!/bin/bash
+export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
+export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
+
 cd $OUT_DIR
 mkdir -p demultiplex
 # run demultiplexing
@@ -334,6 +337,9 @@ fi
 
    # the script that will be launched to launch those 
 echo "#!/bin/bash
+export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
+export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN 
+
 cd $OUT_DIR
 mkdir -p trimming
 tardis -c 1 --hpctype $HPC_TYPE -d $OUT_DIR/trimming --shell-include-file $OUT_DIR/configure_cutadapt_env.src source _condition_text_input_$OUT_DIR/trim_commands.txt > $OUT_DIR/trimming.log 2>&1
@@ -366,6 +372,9 @@ fi
    done
    # the script that will be launched to launch those 
 echo "#!/bin/bash
+export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
+export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
+
 cd $OUT_DIR
 mkdir -p fasta
 tardis --hpctype $HPC_TYPE  -c 1 -d $OUT_DIR/fasta source _condition_text_input_$OUT_DIR/format_commands.txt > $OUT_DIR/format.log 2>&1
@@ -384,6 +393,9 @@ fi
    ################ blast script
    # blasts seqs
 echo "#!/bin/bash
+export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
+export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
+
 cd $OUT_DIR
 mkdir -p blast
 $SEQ_PRISMS_BIN/align_prism.sh -C $HPC_TYPE  -f -a blastn -r $taxonomy_blast_database -p \"-num_threads 4 -task $blast_task -word_size $wordsize -outfmt \\'6 std qlen \\' -evalue $similarity\"  -O $OUT_DIR/blast \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/blast.log 2>&1 
@@ -408,6 +420,9 @@ fi
 
    # the script that will be launched to launch those 
 echo "#!/bin/bash
+export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
+export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
+
 cd $OUT_DIR
 mkdir -p summary
 tardis --hpctype $HPC_TYPE -c 1 -d $OUT_DIR/summary  source _condition_text_input_$OUT_DIR/summary_commands.txt > $OUT_DIR/summary.log 2>&1
@@ -422,6 +437,9 @@ fi
    ################ kmer_analysis script
    # summaries kmer distribution
 echo "#!/bin/bash
+export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
+export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
+
 cd $OUT_DIR
 mkdir -p kmer_analysis
 $SEQ_PRISMS_BIN/kmer_prism.sh -C $HPC_TYPE -a fasta -p \"-k 6 -A --weighting_method tag_count\" -O $OUT_DIR/kmer_analysis \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/kmer_analysis.log 2>&1  
@@ -437,6 +455,9 @@ fi
    ################ html script
    # summaries of the summaries 
 echo "#!/bin/bash
+export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
+export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
+
 cd $OUT_DIR
 mkdir -p html 
 # summaries at genus and species level for the plots
