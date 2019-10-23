@@ -23,7 +23,11 @@ function get_input_files() {
    # this gets input files to process, including the sample info 
    while [ 1 ]; do
       if [ -f $OUT_ROOT/input_file_list.txt ]; then
-         echo "will process the following files: . . . (press Enter/Return for a list - then press space bar to page through listing)"
+
+         echo "looks like you might be restarting a previous run - $OUT_ROOT/input_file_list.txt exists"
+         echo "(this is OK to restart from the current step - see below to restart from a previous step)" 
+         echo "the input for the current step would be . . . (press Enter/Return for a list - then press space bar to page through listing)"
+         echo "(answer n to the next OK ? prompt you get, if you want to backtrack, or customise the list)"
          read answer
          more $OUT_ROOT/input_file_list.txt
          echo "OK ? (default = y)"
@@ -32,8 +36,21 @@ function get_input_files() {
             echo ""
          else
             echo "
-ok quitting - you can edit the file $OUT_ROOT/input_file_list.txt in order to customise the
-files to process, or remove it so that the data folder is re-scanned for files to process, and try again"
+ok quitting - here are some suggestions for modifying the list of files to be processed, before re-trying:
+
+* you could edit $OUT_ROOT/input_file_list.txt
+* you could delete $OUT_ROOT/input_file_list.txt 
+* you could replace $OUT_ROOT/input_file_list.txt with one of the following input lists, if starting from that step : 
+"
+            ls -l $OUT_ROOT/*input*.txt
+            echo "
+(i.e. cp _one_of_the_inputs  $OUT_ROOT/input_file_list.txt)
+
+note that as well as setting up $OUT_ROOT/input_file_list.txt , you should also remove the job-completed 
+landmark files for the job you want to run - for example if you want to re-start from the format step,
+then as well as copying the format step input file list , to $OUT_ROOT/input_file_list.txt, you should 
+rm $OUT_ROOT/*format
+            "
             exit 1
          fi
       fi
@@ -174,7 +191,7 @@ function get_run_opts() {
    ####### get and check DATASET
    while [ 1 ] ; do
       echo "
-please give either the name of the file(s) or folder(s) you would like to process 
+please give either the name of the file(s) or folder(s) you would like to process (or just press enter if you are restarting) 
 e.g. 
 
 /dataset/gseq_processing/scratch/illumina/hiseq/190524_D00390_0462_ACDN6VANXX/SampleSheet/bcl2fastq/Research/SQ0990_S2311_L008_R1_001.fastq.gz
@@ -184,17 +201,28 @@ e.g.
 /dataset/gseq_processing/scratch/illumina/hiseq/190614_D00390_0467_ACDR6TANXX/SampleSheet/bcl2fastq/Undetermined_S0_L004_R1_001.fastq.gz
 
 "
-      read DATASET
-      if [ ! -z "$DATASET" ]; then 
+      read_answer_with_default restarting 
+      if [ $answer != "restarting"  ]; then 
+         if [ -f $answer ]; then
+            DATASET=$answer
+            break
+         else
+            echo "$answer not found"
+         fi
+      else 
+         DATASET=$answer
          break
       fi
-
    done
 
-   for file in `ls $DATASET`; do
-      DATASET_BASE=`basename $file`
-      break
-   done 
+   if [ $DATASET != "restarting" ]; then
+      for file in `ls $DATASET`; do
+         DATASET_BASE=`basename $file`
+         break
+      done 
+   else
+      DATASET_BASE=restarting
+   fi
 
 
    ####### get and check cohort 
@@ -224,15 +252,24 @@ should this run be queued on the compute cluster ? (y/n, default=y. If n, will b
    
 
    # set up folder
-   if [ -z "$COHORT" ]; then
-      default=$PROCESSING_ROOT/$DATASET_BASE
+   if [ $DATASET_BASE != "restarting" ]; then 
+      if [ -z "$COHORT" ]; then
+         default=$PROCESSING_ROOT/$DATASET_BASE
+      else
+         default=$PROCESSING_ROOT/$DATASET_BASE/$COHORT
+      fi
    else
-      default=$PROCESSING_ROOT/$DATASET_BASE/$COHORT
+      default=""
    fi
 
    while [ 1 ]; do
-      echo "please specify output base folder (or just press Enter/Return to use default , $default"
-      read_answer_with_default $default
+      if [ $DATASET_BASE == "restarting" ]; then
+         echo "please specify the original output base folder"
+         read_answer_with_default $default
+      else
+         echo "please specify output base folder (or just press Enter/Return to use default , $default"
+         read_answer_with_default $default
+      fi
       NEW_ROOT=$answer
       if [ -d $NEW_ROOT ]; then
          echo "warning - $NEW_ROOT already exists, use anyway ? (y/n, default=y)"
@@ -500,7 +537,7 @@ function get_targets() {
    ############# demultiplex ##################
    echo "
 cp $OUT_ROOT/input_file_list.txt $OUT_ROOT/demultiplex_input_file_list.txt
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a demultiplex -l $OUT_ROOT/sample_info.txt -O $OUT_ROOT \`cat $OUT_ROOT/demultiplex_input_file_list.txt\` > $OUT_ROOT/demultiplex.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a demultiplex -l $OUT_ROOT/sample_info.txt -O $OUT_ROOT \`cat $OUT_ROOT/demultiplex_input_file_list.txt\` > $OUT_ROOT/run_demultiplex.log 2>&1
 if [ \$? != 0 ]; then
    echo \"demultiplex returned an error code ( \$? )\"
    exit 1
@@ -511,7 +548,7 @@ fi
 
    ############# trim  ##################
    echo "
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a trim -m $SEQLENGTH_MIN -q $SEQQUAL_MIN -O $OUT_ROOT \`cat $OUT_ROOT/trim_input_file_list.txt\` > $OUT_ROOT/trim.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a trim -m $SEQLENGTH_MIN -q $SEQQUAL_MIN -O $OUT_ROOT \`cat $OUT_ROOT/trim_input_file_list.txt\` > $OUT_ROOT/run_trim.log 2>&1
 if [ \$? != 0 ]; then
    echo \"trim returned an error code ( \$? )\"
    exit 1
@@ -522,7 +559,7 @@ fi
 
    ############# format   ##################
    echo "
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a format -O $OUT_ROOT \`cat $OUT_ROOT/format_input_file_list.txt\` > $OUT_ROOT/format.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a format -O $OUT_ROOT \`cat $OUT_ROOT/format_input_file_list.txt\` > $OUT_ROOT/run_format.log 2>&1
 if [ \$? != 0 ]; then
    echo \"format returned an error code ( \$? )\"
    exit 1
@@ -535,7 +572,7 @@ fi
 
    ############# blast   ##################
    echo "
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a blast -s $SIMILARITY -b $BLAST_DATABASE -w $WORDSIZE -T $BLAST_TASK -O $OUT_ROOT \`cat $OUT_ROOT/blast_input_file_list.txt\` > $OUT_ROOT/blast.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a blast -s $SIMILARITY -b $BLAST_DATABASE -w $WORDSIZE -T $BLAST_TASK -O $OUT_ROOT \`cat $OUT_ROOT/blast_input_file_list.txt\` > $OUT_ROOT/run_blast.log 2>&1
 if [ \$? != 0 ]; then
    echo \"blast returned an error code ( \$? )\"
    exit 1
@@ -547,7 +584,7 @@ fi
 
    ############# summary   ##################
    echo "
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a summarise -O $OUT_ROOT \`cat $OUT_ROOT/summarise_input_file_list.txt\` > $OUT_ROOT/summarise.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a summarise -O $OUT_ROOT \`cat $OUT_ROOT/summarise_input_file_list.txt\` > $OUT_ROOT/run_summarise.log 2>&1
 if [ \$? != 0 ]; then
    echo \"summarise returned an error code ( \$? )\"
    exit 1
@@ -559,7 +596,7 @@ fi
 
    ############# kmer anlaysis   ##################
    echo "
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a kmer_analysis  -O $OUT_ROOT \`cat $OUT_ROOT/kmer_input_file_list.txt\` > $OUT_ROOT/kmer_analysis.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a kmer_analysis  -O $OUT_ROOT \`cat $OUT_ROOT/kmer_input_file_list.txt\` > $OUT_ROOT/run_kmer_analysis.log 2>&1
 if [ \$? != 0 ]; then
    echo \"kmer_analysis returned an error code ( \$? )\"
    exit 1
@@ -569,7 +606,7 @@ fi
 
    ############# html   ##################
    echo "
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a html  -O $OUT_ROOT \`cat $OUT_ROOT/html_input_file_list.txt\` > $OUT_ROOT/html_summary.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a html  -O $OUT_ROOT \`cat $OUT_ROOT/html_input_file_list.txt\` > $OUT_ROOT/run_html_summary.log 2>&1
 if [ \$? != 0 ]; then
    echo \"html_summary returned an error code ( \$? )\"
    exit 1
@@ -609,20 +646,20 @@ export GBS_PRISM_BIN=/dataset/gseq_processing/active/bin/gbs_prism
 export MELSEQ_PRISM_BIN=/dataset/gseq_processing/active/bin/melseq_prism
 export HISEQ_ROOT=/dataset/gseq_processing/scratch/illumina/hiseq
 cd $OUT_ROOT
-time make -f run_melseq.mk -d -k  --no-builtin-rules -j 16 \`cat $OUT_ROOT/run_${ANALYSIS}_targets.txt\` > $OUT_ROOT/run_${ANALYSIS}.log 2>&1
+time make -f run_melseq.mk -d -k  --no-builtin-rules -j 16 \`cat $OUT_ROOT/run_${ANALYSIS}_targets.txt\` > $OUT_ROOT/run_melseq_restart.log 2>&1
 " > $OUT_ROOT/restart.src
 
    echo "
-starting run , logging to $OUT_ROOT/run_${ANALYSIS}.log 
+starting run , logging to $OUT_ROOT/run_melseq.log 
 
-(if you need to kill or restart this run, you can restart using 
+(if you need to kill or restart this run, you can usually restart using 
 
 source $OUT_ROOT/restart.src
 
 )
 "
 
-   time make -f run_melseq.mk -d -k  --no-builtin-rules -j 16 `cat $OUT_ROOT/run_${ANALYSIS}_targets.txt` > $OUT_ROOT/run_${ANALYSIS}.log 2>&1
+   time make -f run_melseq.mk -d -k  --no-builtin-rules -j 16 `cat $OUT_ROOT/run_${ANALYSIS}_targets.txt` > $OUT_ROOT/run_melseq.log 2>&1
 }
 
 function html_prism() {
@@ -651,7 +688,9 @@ function main() {
    if [ $ANALYSIS == "clientreport" ]; then
       clientreport_prism
    else
-      get_targets
+      if [ $DATASET != "restarting" ]; then 
+         get_targets
+      fi
       if [ $DRY_RUN != "no" ]; then
          fake_prism
       else

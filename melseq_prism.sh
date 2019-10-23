@@ -305,6 +305,7 @@ fi
       adapter_phrase="-a $adapter_to_trim "
    fi
    rm -f $OUT_DIR/trim_commands.txt
+   touch $OUT_DIR/trim_commands.txt
    for file in `cat $OUT_DIR/input_file_list.txt`; do
       file_base=`basename $file .fastq.gz`
       file_dir=`dirname $file`
@@ -363,12 +364,15 @@ fi
    # generate format conversion command file:
    rm -f $OUT_DIR/format_commands.txt
    rm -f $OUT_DIR/count_commands.txt
+   touch $OUT_DIR/format_commands.txt
+   touch $OUT_DIR/count_commands.txt
    for file in `cat $OUT_DIR/input_file_list.txt`; do
       file_base=`basename $file .fastq.gz`
-      file_dir=`dirname $file`
-      # dont want any more than one or 2 chunks 
-      echo "tardis -d $OUT_DIR/fasta -q --hpctype $HPC_TYPE -c 999999999 cat _condition_fastq2fasta_input_$file | $OUT_DIR/add_sample_name.py $file_base > $OUT_DIR/fasta/${file_base}.fasta 2>$OUT_DIR/fasta/${file_base}.fasta.stderr " >> $OUT_DIR/format_commands.txt
-      echo "cat $OUT_DIR/fasta/${file_base}.fasta | $OUT_DIR/countUniqueReads.sh  > $OUT_DIR/fasta/${file_base}.non-redundant.fasta 2>$OUT_DIR/fasta/${file_base}.non-redundant.fasta.stderr " >> $OUT_DIR/count_commands.txt
+      if [ ! -f $OUT_DIR/fasta/${file_base}.non-redundant.fasta ]; then
+         # dont want any more than one or 2 chunks 
+         echo "tardis -d $OUT_DIR/fasta -q --hpctype $HPC_TYPE -c 999999999 cat _condition_fastq2fasta_input_$file | $OUT_DIR/add_sample_name.py $file_base > $OUT_DIR/fasta/${file_base}.fasta 2>$OUT_DIR/fasta/${file_base}.fasta.stderr " >> $OUT_DIR/format_commands.txt
+         echo "cat $OUT_DIR/fasta/${file_base}.fasta | $OUT_DIR/countUniqueReads.sh  > $OUT_DIR/fasta/${file_base}.non-redundant.fasta 2>$OUT_DIR/fasta/${file_base}.non-redundant.fasta.stderr " >> $OUT_DIR/count_commands.txt
+      fi
    done
    # the script that will be launched to launch those 
 echo "#!/bin/bash
@@ -412,6 +416,7 @@ fi
    # the summary  script will launch a command file that we also prepare here
    # generate command file:
    rm -f $OUT_DIR/summary_commands.txt
+   touch $OUT_DIR/summary_commands.txt
    # generate command file
    for file in `cat $OUT_DIR/input_file_list.txt`; do
       base=`basename $file .results.gz`
