@@ -202,20 +202,21 @@ e.g.
 
 "
       read_answer_with_default restarting 
-      if [ $answer != "restarting"  ]; then 
-         if [ -f $answer ]; then
-            DATASET=$answer
+      if [ "$answer" != "restarting"  ]; then 
+         ls $DATASET > /dev/null 2>&1 
+         if [ $? == 0 ]; then
+            DATASET="$answer"
             break
          else
             echo "$answer not found"
          fi
       else 
-         DATASET=$answer
+         DATASET="$answer"
          break
       fi
    done
 
-   if [ $DATASET != "restarting" ]; then
+   if [ "$DATASET" != "restarting" ]; then
       for file in `ls $DATASET`; do
          DATASET_BASE=`basename $file`
          break
@@ -314,16 +315,19 @@ please give which analysis you want to build (all, demultiplex, trim, format, bl
    # get input files (depends on what the ANALYSIS is ) 
    get_input_files
 
-
-   ls $OUT_ROOT/*.demultiplexed/*  $OUT_ROOT/trimming/*  $OUT_ROOT/fasta/* $OUT_ROOT/blast/* $OUT_ROOT/summary/* $OUT_ROOT/kmer_ananlysis/* $OUT_ROOT/html/*  > /dev/null 2>&1
-   if [ $? == 0 ] ; then
-      echo "found some existing results under $OUT_ROOT - are you sure you want to continue (e.g. complete an interrupted run) ? (y/n)"
-      read_answer_with_default n
-      if [[ ( $answer != "y" )  && ( $answer != "Y" ) ]]; then
-         echo "ok quitting - please either use a different output folder or clean up $OUT_ROOT"
-         exit 1
+   # check if any existing results
+   for result_type in demultiplex trim format blast summarise kmer_analysis html; do
+      ls $OUT_ROOT/*.${result_type} > /dev/null 2>&1
+      if [ $? == 0 ]; then
+         echo "found some existing results ( e.g. ${result_type} ) under $OUT_ROOT - are you sure you want to continue (e.g. complete an interrupted run) ? (y/n)"
+         read_answer_with_default n 
+         if [[ ( $answer != "y" )  && ( $answer != "Y" ) ]]; then
+            echo "ok quitting - please either use a different output folder or clean up $OUT_ROOT"
+            exit 1
+         fi
+         break
       fi
-   fi
+   done
 
    ####### get and check the blast data to use 
    if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "blast" ) ]]; then
@@ -688,7 +692,7 @@ function main() {
    if [ $ANALYSIS == "clientreport" ]; then
       clientreport_prism
    else
-      if [ $DATASET != "restarting" ]; then 
+      if [ "$DATASET" != "restarting" ]; then 
          get_targets
       fi
       if [ $DRY_RUN != "no" ]; then
