@@ -253,48 +253,35 @@ function get_targets() {
    for ((j=0;$j<$NUM_FILES;j=$j+1)) do
       file=${files_array[$j]}
       echo $file >> $OUT_DIR/input_file_list.txt
-      if [ $ANALYSIS == "demultiplex" ]; then 
-         file_base=`basename $file`
-         moniker=${file_base}
+   done
 
-         # for demultiplex, different files are different make targets 
-         echo $OUT_DIR/$moniker.$ANALYSIS  >> $OUT_DIR/${ANALYSIS}_targets.txt
-         script=$OUT_DIR/${moniker}.${ANALYSIS}.sh
-         if [ -f $script ]; then
-            if [ ! $FORCE == yes ]; then
-               echo "found existing gbs script $script  - will re-use (use -f to force rebuild of scripts) "
-               continue
-            fi
-         fi
 
-         enzyme_info_phrase=""
-         if [ ! -z $ENZYME_INFO ]; then
-            enzyme_info_phrase="-e $ENZYME_INFO"
-         fi
+   # for all processing, all files are part of a single make target 
+   for analysis_type in demultiplex trim format blast summarise kmer_analysis html; do
+      echo $OUT_DIR/all.$analysis_type  > $OUT_DIR/${analysis_type}_targets.txt
+   done
 
-         ############### demultiplex script
-         echo "#!/bin/bash
+   ################ demultiplex script 
+   enzyme_info_phrase=""
+   if [ ! -z $ENZYME_INFO ]; then
+      enzyme_info_phrase="-e $ENZYME_INFO"
+   fi
+
+   echo "#!/bin/bash
 export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
 export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 
 cd $OUT_DIR
 mkdir -p demultiplex
 # run demultiplexing
-time ./demultiplex_prism.sh -C $HPC_TYPE -x gbsx -l $SAMPLE_INFO  $enzyme_info_phrase  -O $OUT_DIR/demultiplex \`cat $OUT_DIR/input_file_list.txt\` 
+time ./demultiplex_prism.sh -C $HPC_TYPE -x gbsx -l $SAMPLE_INFO  $enzyme_info_phrase  -O $OUT_DIR/demultiplex \`cat $OUT_DIR/input_file_list.txt\`
 if [ \$? != 0 ]; then
    echo \"warning demultiplex returned an error code\"
    exit 1
 fi
-      " > $OUT_DIR/${moniker}.demultiplex.sh
-         chmod +x $OUT_DIR/${moniker}.demultiplex.sh
-      fi
-   done
+   " > $OUT_DIR/all.demultiplex.sh
+   chmod +x $OUT_DIR/all.demultiplex.sh
 
-
-   # for other processing, all files are part of a single make target 
-   for analysis_type in trim format blast summarise kmer_analysis html; do
-      echo $OUT_DIR/all.$analysis_type  > $OUT_DIR/${analysis_type}_targets.txt
-   done
 
    ################ trim script
    # trims seqs
