@@ -299,7 +299,7 @@ fi
       file_dir=`basename $file_dir`
       # dont want any more than one or 2 chunks 
       # need to include file_dir in output base name as may be processing multiple folders - assume distinct parent folders but check this below
-      echo "tardis -q --hpctype $HPC_TYPE  -c 999999999 cutadapt $adapter_phrase -f fastq -q $seqqual_min  -m $seqlength_min _condition_fastq_input_$file -o _condition_uncompressedfastq_output_$OUT_DIR/trimming/${file_dir}_${file_base}_trimmed.fastq > $OUT_DIR/trimming/${file_dir}_${file_base}.trimReport 2>&1" >> $OUT_DIR/trim_commands.txt
+      echo "tardis --hpctype $HPC_TYPE  -c 999999999 cutadapt $adapter_phrase -f fastq -q $seqqual_min  -m $seqlength_min _condition_fastq_input_$file -o _condition_uncompressedfastq_output_$OUT_DIR/trimming/${file_dir}_${file_base}_trimmed.fastq 1\> $OUT_DIR/trimming/${file_dir}_${file_base}.trimReport 2\>$OUT_DIR/trimming/${file_dir}_${file_base}.stderr" >> $OUT_DIR/trim_commands.txt
    done
 
    # check we have same number of output file names as commands
@@ -357,8 +357,8 @@ fi
       file_base=`basename $file .fastq.gz`
       if [ ! -f $OUT_DIR/fasta/${file_base}.non-redundant.fasta ]; then
          # dont want any more than one or 2 chunks 
-         echo "tardis -d $OUT_DIR/fasta -q --hpctype $HPC_TYPE -c 999999999 cat _condition_fastq2fasta_input_$file | $OUT_DIR/add_sample_name.py $file_base > $OUT_DIR/fasta/${file_base}.fasta 2>$OUT_DIR/fasta/${file_base}.fasta.stderr " >> $OUT_DIR/format_commands.txt
-         echo "cat $OUT_DIR/fasta/${file_base}.fasta | $OUT_DIR/countUniqueReads.sh  > $OUT_DIR/fasta/${file_base}.non-redundant.fasta 2>$OUT_DIR/fasta/${file_base}.non-redundant.fasta.stderr " >> $OUT_DIR/count_commands.txt
+         echo "tardis -d $OUT_DIR/fasta --hpctype $HPC_TYPE -c 999999999 cat _condition_fastq2fasta_input_$file \| $OUT_DIR/add_sample_name.py $file_base \> $OUT_DIR/fasta/${file_base}.fasta 2\>$OUT_DIR/fasta/${file_base}.fasta.stderr " >> $OUT_DIR/format_commands.txt
+         echo "tardis -d $OUT_DIR/fasta --hpctype $HPC_TYPE -c 999999999 cat $OUT_DIR/fasta/${file_base}.fasta \| $OUT_DIR/countUniqueReads.sh  \> $OUT_DIR/fasta/${file_base}.non-redundant.fasta 2\>$OUT_DIR/fasta/${file_base}.non-redundant.fasta.stderr " >> $OUT_DIR/count_commands.txt
       fi
    done
    # the script that will be launched to launch those 
@@ -453,16 +453,16 @@ export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 cd $OUT_DIR
 mkdir -p html 
 # summaries at genus and species level for the plots
-tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --weighting_method line \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/html.log 2>&1
-tardis --hpctype $HPC_TYPE -q $OUT_DIR/profile_prism.py --summary_type summary_table --measure frequency \`cat $OUT_DIR/input_file_list.txt | awk '{printf(\"%s.taxonomy.pickle\\n\", \$1);}' -\` > $OUT_DIR/html/taxonomy_frequency_table.txt 2>>$OUT_DIR/html.log
-tardis --hpctype $HPC_TYPE --shell-include-file $OUT_DIR/configure_bioconductor_env.src Rscript --vanilla $OUT_DIR/tax_summary_heatmap.r num_profiles=60 moniker=taxonomy_frequency_table datafolder=$OUT_DIR/html >> $OUT_DIR/html.log 2>&1 
+tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --weighting_method line \`cat $OUT_DIR/input_file_list.txt\` \> $OUT_DIR/html.log 2\>$OUT_DIR/html.log
+tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --summary_type summary_table --measure frequency \`cat $OUT_DIR/input_file_list.txt | awk '{printf(\"%s.taxonomy.pickle\\n\", \$1);}' -\` \> $OUT_DIR/html/taxonomy_frequency_table.txt 2\>\>$OUT_DIR/html.log
+tardis --hpctype $HPC_TYPE --shell-include-file $OUT_DIR/configure_bioconductor_env.src Rscript --vanilla $OUT_DIR/tax_summary_heatmap.r num_profiles=60 moniker=taxonomy_frequency_table datafolder=$OUT_DIR/html \>\> $OUT_DIR/html.log 2\>$OUT_DIR/html.log  
 # 
 # now do summaries just at genus level for the tabular output - i.e. just repeat above , but pass in the 
 # non-default column(s) you want summarised. (Note that the column numbering is zero based )
 
-tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --weighting_method line --columns 6 \`cat $OUT_DIR/input_file_list.txt\` >> $OUT_DIR/html.log 2>&1
-tardis --hpctype $HPC_TYPE -q $OUT_DIR/profile_prism.py --summary_type summary_table --measure frequency \`cat $OUT_DIR/input_file_list.txt | awk '{printf(\"%s.taxonomy.pickle\\n\", \$1);}' -\` > $OUT_DIR/html/taxonomy_genus_frequency_table.txt 2>>$OUT_DIR/html.log
-tardis --hpctype $HPC_TYPE --shell-include-file $OUT_DIR/configure_bioconductor_env.src Rscript --vanilla $OUT_DIR/tax_summary_heatmap.r num_profiles=70 moniker=taxonomy_genus_frequency_table datafolder=$OUT_DIR/html >> $OUT_DIR/html.log 2>&1
+tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --weighting_method line --columns 6 \`cat $OUT_DIR/input_file_list.txt\` \>\> $OUT_DIR/html.log 2\>$OUT_DIR/html.log
+tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --summary_type summary_table --measure frequency \`cat $OUT_DIR/input_file_list.txt | awk '{printf(\"%s.taxonomy.pickle\\n\", \$1);}' -\` \> $OUT_DIR/html/taxonomy_genus_frequency_table.txt 2\>\>$OUT_DIR/html.log
+tardis --hpctype $HPC_TYPE --shell-include-file $OUT_DIR/configure_bioconductor_env.src Rscript --vanilla $OUT_DIR/tax_summary_heatmap.r num_profiles=70 moniker=taxonomy_genus_frequency_table datafolder=$OUT_DIR/html \>\> $OUT_DIR/html.log 2\>$OUT_DIR/html.log 
 
 if [ \$? != 0 ]; then
    echo \"warning html step returned an error code\"
