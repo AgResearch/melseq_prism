@@ -225,35 +225,8 @@ e.g.
       DATASET_BASE=restarting
    fi
 
-
-   ####### get and check cohort 
-   while [ 1 ] ; do
-      echo "
-if the library contains multiple cohorts, please enter the name of the cohort you wish to process (e.g. sheep)  (default = not applicable, just press enter)
-"
-      read_answer_with_default ""
-
-      COHORT=$answer
-
-      break
-   done
-
-
-   ####### get and check whether to run locally or on the cluster
-   echo "
-
-should this run be queued on the compute cluster ? (y/n, default=y. If n, will be run locally)
-"
-   read_answer_with_default y
-   if [ "$answer" != "n" ]; then 
-      HPC_TYPE=slurm
-   else
-      HPC_TYPE=local
-   fi
-   
-
    # set up folder
-   if [ $DATASET_BASE != "restarting" ]; then 
+   if [ $DATASET_BASE != "restarting" ]; then
       if [ -z "$COHORT" ]; then
          default=$PROCESSING_ROOT/$DATASET_BASE
       else
@@ -288,10 +261,39 @@ should this run be queued on the compute cluster ? (y/n, default=y. If n, will b
       fi
    done
 
-   echo "will use output root folder $OUT_ROOT 
+   echo "will use output root folder $OUT_ROOT
 
    "
+   if [ $DATASET == "restarting" ]; then
+      ANALYSIS=all
+      return
+   fi
 
+
+   ####### get and check cohort 
+   while [ 1 ] ; do
+      echo "
+if the library contains multiple cohorts, please enter the name of the cohort you wish to process (e.g. sheep)  (default = not applicable, just press enter)
+"
+      read_answer_with_default ""
+
+      COHORT=$answer
+
+      break
+   done
+
+
+   ####### get and check whether to run locally or on the cluster
+   echo "
+
+should this run be queued on the compute cluster ? (y/n, default=y. If n, will be run locally)
+"
+   read_answer_with_default y
+   if [ "$answer" != "n" ]; then 
+      HPC_TYPE=slurm
+   else
+      HPC_TYPE=local
+   fi
    
    ####### get and check the analysis type 
    while [ 1 ] ; do
