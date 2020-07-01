@@ -264,7 +264,7 @@ e.g.
    echo "will use output root folder $OUT_ROOT
 
    "
-   if [ $DATASET == "restarting" ]; then
+   if [ $DATASET_BASE == "restarting" ]; then
       ANALYSIS=all
       return
    fi
@@ -542,6 +542,9 @@ function get_targets() {
 
    ############# demultiplex ##################
    echo "
+export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN 
+export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
+export GBS_PRISM_BIN=$GBS_PRISM_BIN
 cp $OUT_ROOT/input_file_list.txt $OUT_ROOT/demultiplex_input_file_list.txt
 $MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a demultiplex -l $OUT_ROOT/sample_info.txt -O $OUT_ROOT \`cat $OUT_ROOT/demultiplex_input_file_list.txt\` > $OUT_ROOT/run_demultiplex.log 2>&1
 if [ \$? != 0 ]; then
@@ -554,6 +557,10 @@ fi
 
    ############# trim  ##################
    echo "
+export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
+export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
+export GBS_PRISM_BIN=$GBS_PRISM_BIN
+
 $MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a trim -m $SEQLENGTH_MIN -q $SEQQUAL_MIN -O $OUT_ROOT \`cat $OUT_ROOT/trim_input_file_list.txt\` > $OUT_ROOT/run_trim.log 2>&1
 if [ \$? != 0 ]; then
    echo \"trim returned an error code ( \$? )\"
@@ -565,6 +572,10 @@ fi
 
    ############# format   ##################
    echo "
+export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
+export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
+export GBS_PRISM_BIN=$GBS_PRISM_BIN
+
 $MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a format -O $OUT_ROOT \`cat $OUT_ROOT/format_input_file_list.txt\` > $OUT_ROOT/run_format.log 2>&1
 if [ \$? != 0 ]; then
    echo \"format returned an error code ( \$? )\"
@@ -578,6 +589,10 @@ fi
 
    ############# blast   ##################
    echo "
+export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
+export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
+export GBS_PRISM_BIN=$GBS_PRISM_BIN
+
 $MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a blast -s $SIMILARITY -b $BLAST_DATABASE -w $WORDSIZE -T $BLAST_TASK -O $OUT_ROOT \`cat $OUT_ROOT/blast_input_file_list.txt\` > $OUT_ROOT/run_blast.log 2>&1
 if [ \$? != 0 ]; then
    echo \"blast returned an error code ( \$? )\"
@@ -590,6 +605,10 @@ fi
 
    ############# summary   ##################
    echo "
+export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
+export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
+export GBS_PRISM_BIN=$GBS_PRISM_BIN
+
 $MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a summarise -O $OUT_ROOT \`cat $OUT_ROOT/summarise_input_file_list.txt\` > $OUT_ROOT/run_summarise.log 2>&1
 if [ \$? != 0 ]; then
    echo \"summarise returned an error code ( \$? )\"
@@ -602,6 +621,10 @@ fi
 
    ############# kmer anlaysis   ##################
    echo "
+export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
+export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
+export GBS_PRISM_BIN=$GBS_PRISM_BIN
+
 $MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a kmer_analysis  -O $OUT_ROOT \`cat $OUT_ROOT/kmer_input_file_list.txt\` > $OUT_ROOT/run_kmer_analysis.log 2>&1
 if [ \$? != 0 ]; then
    echo \"kmer_analysis returned an error code ( \$? )\"
@@ -612,6 +635,10 @@ fi
 
    ############# html   ##################
    echo "
+export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
+export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
+export GBS_PRISM_BIN=$GBS_PRISM_BIN
+
 $MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a html  -O $OUT_ROOT \`cat $OUT_ROOT/html_input_file_list.txt\` > $OUT_ROOT/run_html_summary.log 2>&1
 if [ \$? != 0 ]; then
    echo \"html_summary returned an error code ( \$? )\"
@@ -619,9 +646,6 @@ if [ \$? != 0 ]; then
 fi
 " > $OUT_ROOT/${project_moniker}.run_html.sh
    chmod +x $OUT_ROOT/${project_moniker}.run_html.sh
-
-
-
 }
 
 

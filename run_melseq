@@ -3,6 +3,8 @@
 function get_pipeline() {
    export SEQ_PRISMS_BIN=/dataset/gseq_processing/active/bin/melseq_prism/seq_prisms 
    export MELSEQ_PRISM_BIN=/dataset/gseq_processing/active/bin/melseq_prism
+   export GBS_PRISM_BIN=/dataset/gseq_processing/active/bin/gbs_prism
+
    cd $MELSEQ_PRISM_BIN 
    melseq_version=$1
    echo "preparing to run pipeline version $melseq_version (press enter to continue)"
