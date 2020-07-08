@@ -2,6 +2,8 @@
 
 declare -a files_array
 
+NUM_THREADS=8 #for make
+
 function get_opts() {
 
    DRY_RUN=no
@@ -226,7 +228,6 @@ conda activate bifo-essential
 PATH="$OUT_DIR:\$PATH"
 " > $OUT_DIR/configure_cutadapt_env.src
 
-
    cd $OUT_DIR
 
 }
@@ -383,13 +384,17 @@ fi
 
    ################ blast script
    # blasts seqs
+   if [ $HPC_TYPE == "local" ]; then
+      NUM_THREADS=2
+   fi
 echo "#!/bin/bash
 export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
 export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 
 cd $OUT_DIR
 mkdir -p blast
-$SEQ_PRISMS_BIN/align_prism.sh -C $HPC_TYPE  -f -a blastn -r $taxonomy_blast_database -p \"-num_threads 4 -task $blast_task -word_size $wordsize -outfmt \\'6 std qlen \\' -evalue $similarity\"  -O $OUT_DIR/blast \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/blast.log 2>&1 
+rm -f $OUT_DIR/blast/*.fasta # remove any existing shortcuts set up by align_prism (e.g. if restarting)  
+$SEQ_PRISMS_BIN/align_prism.sh -C $HPC_TYPE -j $NUM_THREADS  -f -a blastn -r $taxonomy_blast_database -p \"-num_threads 4 -task $blast_task -word_size $wordsize -outfmt \\'6 std qlen \\' -evalue $similarity\"  -O $OUT_DIR/blast \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/blast.log 2>&1 
 
 if [ \$? != 0 ]; then
    echo \"warning blast returned an error code\"
@@ -474,8 +479,11 @@ fi
 
 
 function fake_prism() {
+   if [ $HPC_TYPE == "local" ]; then
+      NUM_THREADS=2
+   fi
    echo "dry run ! "
-   make -n -f melseq_prism.mk -d -k  --no-builtin-rules -j 16 `cat $OUT_DIR/${ANALYSIS}_targets.txt` > $OUT_DIR/${ANALYSIS}.log 2>&1
+   make -n -f melseq_prism.mk -d -k  --no-builtin-rules -j $NUM_THREADS `cat $OUT_DIR/${ANALYSIS}_targets.txt` > $OUT_DIR/${ANALYSIS}.log 2>&1
    echo "dry run : summary commands are 
    "
    exit 0
@@ -483,7 +491,10 @@ function fake_prism() {
 
 function run_prism() {
    # this prepares each file
-   make -f melseq_prism.mk -d -k  --no-builtin-rules -j 16 `cat $OUT_DIR/${ANALYSIS}_targets.txt` > $OUT_DIR/${ANALYSIS}.log 2>&1
+   if [ $HPC_TYPE == "local" ]; then
+      NUM_THREADS=2
+   fi
+   make -f melseq_prism.mk -d -k  --no-builtin-rules -j $NUM_THREADS `cat $OUT_DIR/${ANALYSIS}_targets.txt` > $OUT_DIR/${ANALYSIS}.log 2>&1
 }
 
 function clean() {

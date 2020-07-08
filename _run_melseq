@@ -5,6 +5,8 @@ export GBS_PRISM_BIN=/dataset/gseq_processing/active/bin/gbs_prism
 export MELSEQ_PRISM_BIN=/dataset/gseq_processing/active/bin/melseq_prism
 export HISEQ_ROOT=/dataset/gseq_processing/scratch/illumina/hiseq
 
+NUM_THREADS=8 # for make
+
 
 melseq_version=$1
 
@@ -241,7 +243,7 @@ e.g.
          echo "please specify the original output base folder"
          read_answer_with_default $default
       else
-         echo "please specify output base folder (or just press Enter/Return to use default , $default"
+         echo "please specify output base folder (or just press Enter/Return to use default , $default )"
          read_answer_with_default $default
       fi
       NEW_ROOT=$answer
@@ -293,6 +295,7 @@ should this run be queued on the compute cluster ? (y/n, default=y. If n, will b
       HPC_TYPE=slurm
    else
       HPC_TYPE=local
+      NUM_THREADS=2
    fi
    
    ####### get and check the analysis type 
@@ -332,7 +335,7 @@ please give which analysis you want to build (all, demultiplex, trim, format, bl
    done
 
    ####### get and check the blast data to use 
-   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "blast" ) ]]; then
+   if [ 1 ] ; then
       while [ 1 ] ; do
          echo "
 please give the full path to the blast database (or just press enter to use default, /dataset/GBS_Rumen_Metagenomes/scratch/blast_analysis/GenusPlusQuinella) 
@@ -352,7 +355,7 @@ please give the full path to the blast database (or just press enter to use defa
 
 
    ####### get and check the similarity to use  
-   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "blast" ) ]]; then
+   if [ 1 ] ; then
       while [ 1 ] ; do
          echo "
 please specify the similarity (as an evalue) to use for clustering (or just press enter to use default, 0.02) 
@@ -373,7 +376,7 @@ please specify the similarity (as an evalue) to use for clustering (or just pres
 
 
    ####### get and check the minimum length to use  
-   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "trim" ) ]]; then
+   if [ 1 ] ; then
       while [ 1 ] ; do
          SEQLENGTH_MIN=200 
          echo "
@@ -395,7 +398,7 @@ please specify the minimum seq length (or just press enter to use default, 40)
 
 
    ####### get and check the minimum quality to use
-   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "trim" ) ]]; then
+   if [ 1 ]; then
       while [ 1 ] ; do
          SEQQUAL_MIN=20
          echo "
@@ -416,7 +419,7 @@ please specify the minimum seq quality (or just press enter to use default, 20)
    fi
 
    ####### get and check the blast wordsize  to use
-   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "blast" ) ]]; then
+   if [ 1 ]; then
       while [ 1 ] ; do
          WORDSIZE=16
          echo "
@@ -437,7 +440,7 @@ please specify the blast wordsize to use (or just press enter to use default, 16
    fi
 
    ####### get and check the blast task to use
-   if [[ ( $ANALYSIS == "all" ) || ( $ANALYSIS == "blast" ) ]]; then
+   if [ 1 ]; then
       while [ 1 ] ; do
          BLAST_TASK=blastn
          echo "
@@ -656,7 +659,7 @@ function fake_prism() {
 (logging to $OUT_ROOT/run_${ANALYSIS}.log
 
    "
-   make -f run_melseq.mk -n -d -k  --no-builtin-rules -j 16 `cat $OUT_ROOT/run_${ANALYSIS}_targets.txt` > $OUT_ROOT/run_${ANALYSIS}.log 2>&1
+   make -f run_melseq.mk -n -d -k  --no-builtin-rules -j $NUM_THREADS `cat $OUT_ROOT/run_${ANALYSIS}_targets.txt` > $OUT_ROOT/run_${ANALYSIS}.log 2>&1
 
 echo "
 ** done **
@@ -676,7 +679,7 @@ export GBS_PRISM_BIN=/dataset/gseq_processing/active/bin/gbs_prism
 export MELSEQ_PRISM_BIN=/dataset/gseq_processing/active/bin/melseq_prism
 export HISEQ_ROOT=/dataset/gseq_processing/scratch/illumina/hiseq
 cd $OUT_ROOT
-time make -f run_melseq.mk -d -k  --no-builtin-rules -j 16 \`cat $OUT_ROOT/run_${ANALYSIS}_targets.txt\` > $OUT_ROOT/run_melseq_restart.log 2>&1
+time make -f run_melseq.mk -d -k  --no-builtin-rules -j $NUM_THREADS \`cat $OUT_ROOT/run_${ANALYSIS}_targets.txt\` > $OUT_ROOT/run_melseq_restart.log 2>&1
 " > $OUT_ROOT/restart.src
 
    echo "
@@ -689,7 +692,7 @@ source $OUT_ROOT/restart.src
 )
 "
 
-   time make -f run_melseq.mk -d -k  --no-builtin-rules -j 16 `cat $OUT_ROOT/run_${ANALYSIS}_targets.txt` > $OUT_ROOT/run_melseq.log 2>&1
+   time make -f run_melseq.mk -d -k  --no-builtin-rules -j $NUM_THREADS `cat $OUT_ROOT/run_${ANALYSIS}_targets.txt` > $OUT_ROOT/run_melseq.log 2>&1
 }
 
 function html_prism() {
