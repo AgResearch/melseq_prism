@@ -495,6 +495,9 @@ function run_prism() {
       NUM_THREADS=2
    fi
    make -f melseq_prism.mk -d -k  --no-builtin-rules -j $NUM_THREADS `cat $OUT_DIR/${ANALYSIS}_targets.txt` > $OUT_DIR/${ANALYSIS}.log 2>&1
+   echo "processing complete...summarising counts..."
+   $MELSEQ_PRISM_BIN/check_processing.sh $OUT_DIR > $OUT_DIR/check_processing.log 2>&1
+   echo "* done *"
 }
 
 function clean() {
