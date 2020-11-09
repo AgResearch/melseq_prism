@@ -228,7 +228,14 @@ conda activate bifo-essential
 PATH="$OUT_DIR:\$PATH"
 " > $OUT_DIR/configure_cutadapt_env.src
 
+  echo "
+export TMP=$OUT_DIR/TEMP
+export TEMP=$OUT_DIR/TEMP
+export TMPDIR=$OUT_DIR/TEMP
+" > $OUT_DIR/configure_temp_env.src
+
    cd $OUT_DIR
+   mkdir TEMP
 
 }
 
@@ -359,7 +366,7 @@ fi
       if [ ! -f $OUT_DIR/fasta/${file_base}.non-redundant.fasta ]; then
          # dont want any more than one or 2 chunks 
          echo "tardis -d $OUT_DIR/fasta --hpctype $HPC_TYPE -c 999999999 cat _condition_fastq2fasta_input_$file \| $OUT_DIR/add_sample_name.py $file_base \> $OUT_DIR/fasta/${file_base}.fasta 2\>$OUT_DIR/fasta/${file_base}.fasta.stderr " >> $OUT_DIR/format_commands.txt
-         echo "tardis -d $OUT_DIR/fasta --hpctype $HPC_TYPE -c 999999999 cat $OUT_DIR/fasta/${file_base}.fasta \| $OUT_DIR/countUniqueReads.sh  \> $OUT_DIR/fasta/${file_base}.non-redundant.fasta 2\>$OUT_DIR/fasta/${file_base}.non-redundant.fasta.stderr " >> $OUT_DIR/count_commands.txt
+         echo "tardis -d $OUT_DIR/fasta --hpctype $HPC_TYPE -c 999999999 cat $OUT_DIR/fasta/${file_base}.fasta \| $OUT_DIR/countUniqueReads.sh $OUT_DIR/TEMP  \> $OUT_DIR/fasta/${file_base}.non-redundant.fasta 2\>$OUT_DIR/fasta/${file_base}.non-redundant.fasta.stderr " >> $OUT_DIR/count_commands.txt
       fi
    done
    # the script that will be launched to launch those 
@@ -422,7 +429,7 @@ export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 
 cd $OUT_DIR
 mkdir -p summary
-tardis --hpctype $HPC_TYPE -c 1 -d $OUT_DIR/summary  source _condition_text_input_$OUT_DIR/summary_commands.txt > $OUT_DIR/summary.log 2>&1
+tardis --hpctype $HPC_TYPE -c 1 -d $OUT_DIR/summary  --shell-include-file $OUT_DIR/configure_temp_env.src source _condition_text_input_$OUT_DIR/summary_commands.txt > $OUT_DIR/summary.log 2>&1
 if [ \$? != 0 ]; then
    echo \"warning summary returned an error code\"
    exit 1
@@ -495,8 +502,6 @@ function run_prism() {
       NUM_THREADS=2
    fi
    make -f melseq_prism.mk -d -k  --no-builtin-rules -j $NUM_THREADS `cat $OUT_DIR/${ANALYSIS}_targets.txt` > $OUT_DIR/${ANALYSIS}.log 2>&1
-   echo "processing complete...summarising counts..."
-   $MELSEQ_PRISM_BIN/check_processing.sh $OUT_DIR > $OUT_DIR/check_processing.log 2>&1
    echo "* done *"
 }
 

@@ -295,7 +295,20 @@ should this run be queued on the compute cluster ? (y/n, default=y. If n, will b
       HPC_TYPE=slurm
    else
       HPC_TYPE=local
-      NUM_THREADS=2
+      NUM_THREADS=2  # this ensures the number of threads launched locally is not *too* large
+   fi
+
+   ####### if they chose local , suggest they don't
+   if [ $HPC_TYPE == "local" ]; then
+      echo "
+are you really really really sure you want to run this all on the local machine !? It will take longer, and will launch large numbers of processes  ? (y/n, default=n. If n, will change to SLURM )
+"
+      read_answer_with_default n
+      if [ "$answer" == "n" ]; then
+         HPC_TYPE=slurm
+         NUM_THREADS=8
+         echo "OK will use the compute cluster"
+      fi
    fi
    
    ####### get and check the analysis type 
@@ -693,6 +706,8 @@ source $OUT_ROOT/restart.src
 "
 
    time make -f run_melseq.mk -d -k  --no-builtin-rules -j $NUM_THREADS `cat $OUT_ROOT/run_${ANALYSIS}_targets.txt` > $OUT_ROOT/run_melseq.log 2>&1
+   echo "counting up inputs and outputs at each stage for audit..."
+   $MELSEQ_PRISM_BIN/check_processing.sh $OUT_ROOT > $OUT_ROOT/check_processing.log 2>&1
 }
 
 function html_prism() {
