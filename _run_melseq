@@ -181,7 +181,7 @@ function get_run_opts() {
    SEQLENGTH_MIN=""
    SEQQUAL_MIN=$OPTARG
 
-   PROCESSING_ROOT=/dataset/gseq_processing/scratch/melseq
+   PROCESSING_ROOT=/dataset/GBS_Microbiomes_Processing/itmp/melseq
 
 
    echo "*** melseq analysis version $melseq_version ***
