@@ -26,6 +26,10 @@
 	$@.sh > $@.mk.log 2>&1
 	date > $@
 
+%.merge_lanes:
+	$@.sh > $@.mk.log 2>&1
+	date > $@
+
 %.blast:
 	$@.sh > $@.mk.log 2>&1
 	date > $@

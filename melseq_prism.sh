@@ -119,8 +119,8 @@ example:\n
 
 
 function check_opts() {
-   if [[ ( $ANALYSIS != "demultiplex" ) && ( $ANALYSIS != "trim" ) && ( $ANALYSIS != "format" ) && ( $ANALYSIS != "blast" ) && ( $ANALYSIS != "kmer_analysis" ) && ( $ANALYSIS != "summarise" )  && ( $ANALYSIS != "html" ) ]] ; then
-      echo "analysis must be one of demultiplex, trim , format, blast, summarise , html, clean) "
+   if [[ ( $ANALYSIS != "demultiplex" ) && ( $ANALYSIS != "trim" ) && ( $ANALYSIS != "format" ) && ( $ANALYSIS != "merge_lanes" ) && ( $ANALYSIS != "blast" ) && ( $ANALYSIS != "kmer_analysis" ) && ( $ANALYSIS != "summarise" )  && ( $ANALYSIS != "html" ) ]] ; then
+      echo "analysis must be one of demultiplex, trim , format, merge_lanes, blast, summarise , html, clean) "
       exit 1
    fi
 
@@ -212,8 +212,10 @@ function configure_env() {
    cp $GBS_PRISM_BIN/demultiplex_prism.sh $OUT_DIR
    cp $GBS_PRISM_BIN/demultiplex_prism.mk $OUT_DIR
    cp profile_prism.py $OUT_DIR
+   cp merge_lanes.py $OUT_DIR
    cp seq_prisms/data_prism.py $OUT_DIR
    cp seq_prisms/tax_summary_heatmap.r $OUT_DIR
+   
 
    echo "
 export CONDA_ENVS_PATH=$CONDA_ENVS_PATH
@@ -265,7 +267,7 @@ function get_targets() {
 
 
    # for all processing, all files are part of a single make target 
-   for analysis_type in demultiplex trim format blast summarise kmer_analysis html; do
+   for analysis_type in demultiplex trim format merge_lanes blast summarise kmer_analysis html; do
       echo $OUT_DIR/all.$analysis_type  > $OUT_DIR/${analysis_type}_targets.txt
    done
 
@@ -388,6 +390,33 @@ if [ \$? != 0 ]; then
 fi
      " >  $OUT_DIR/all.format.sh
    chmod +x $OUT_DIR/all.format.sh
+
+   ################ merge_lanes script
+   # merges fasta files from different lanes  - motivated by novaseq data which arrives split into lanes
+   # e.g. 
+   # iramohio-01$ grep 966045_AGGCTAGGAT /dataset/GBS_Microbiomes_Processing/itmp/melseq/SQ1635/blast_input_file_list.txt
+   # /dataset/GBS_Microbiomes_Processing/itmp/melseq/SQ1635/fasta/SQ1635_HCH3GDRXY_s_1_fastq.txt.gz.demultiplexed_966045_AGGCTAGGAT_psti.R1_trimmed.fastq.non-redundant.fasta
+   # /dataset/GBS_Microbiomes_Processing/itmp/melseq/SQ1635/fasta/SQ1635_HCH3GDRXY_s_2_fastq.txt.gz.demultiplexed_966045_AGGCTAGGAT_psti.R1_trimmed.fastq.non-redundant.fasta
+
+   # the merge script will launch a command files we prepare here
+   # generate merge command file:
+   rm -f $OUT_DIR/merge_lanes_commands.txt
+   $OUT_DIR/merge_lanes.py -M $OUT_DIR/merged_fasta -O $OUT_DIR/merge_lanes_commands.txt  $OUT_DIR/input_file_list.txt >  $OUT_DIR/merge_lanes.py.log 2>&1 
+   # the script that will be launched to launch those
+echo "#!/bin/bash
+export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
+export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
+
+cd $OUT_DIR
+mkdir -p merged_fasta
+tardis --hpctype $HPC_TYPE  -c 1 -d $OUT_DIR/merged_fasta source _condition_text_input_$OUT_DIR/merge_lanes_commands.txt  > $OUT_DIR/merge_lanes_commands.log 2>&1
+if [ \$? != 0 ]; then
+   echo \"warning fasta merge returned an error code\"
+   exit 1
+fi
+     " >  $OUT_DIR/all.merge_lanes.sh
+   chmod +x $OUT_DIR/all.merge_lanes.sh
+
 
    ################ blast script
    # blasts seqs
