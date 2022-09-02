@@ -57,7 +57,7 @@ rm $OUT_ROOT/*format
          fi
       fi
 
-      if [[ ( -f $OUT_ROOT/sample_info.txt ) && ( ( $ANALYSIS == "demultiplex" ) || ( $ANALYSIS == "all" ) )  ]]; then
+      if [[ ( -f $OUT_ROOT/sample_info.txt ) && ( ( $ANALYSIS == "demultiplex" ) || ( $ANALYSIS == "all" ) || ( $ANALYSIS == "merge_lanes" ) )  ]]; then
          echo "will use the following sample info . . . (press Enter/Return for a list - then press space bar to page through listing)"
          read answer
          more $OUT_ROOT/sample_info.txt
@@ -100,7 +100,7 @@ files to process, or remove it so that the data folder is re-scanned for files t
 
       # we have files to process
       # try getting the keyfile if not there and we need it 
-      if [[ ( ! -f $OUT_ROOT/sample_info.txt ) && ( ( $ANALYSIS == "demultiplex" ) || ( $ANALYSIS == "all" ) ) ]]; then
+      if [[ ( ! -f $OUT_ROOT/sample_info.txt ) && ( ( $ANALYSIS == "demultiplex" ) || ( $ANALYSIS == "all" ) || ( $ANALYSIS == "merge_lanes" ) ) ]]; then
          echo "trying to get keyfile... "
 
          set -x
@@ -181,7 +181,7 @@ function get_run_opts() {
    SEQLENGTH_MIN=""
    SEQQUAL_MIN=$OPTARG
 
-   PROCESSING_ROOT=/dataset/GBS_Microbiomes_Processing/itmp/melseq
+   PROCESSING_ROOT=/dataset/hiseq/scratch/postprocessing/melseq
 
 
    echo "*** melseq analysis version $melseq_version ***
@@ -317,13 +317,13 @@ are you really really really sure you want to run this all on the local machine 
    while [ 1 ] ; do
       ANALYSIS=all
       echo "
-please give which analysis you want to build (all, demultiplex, trim, format, blast, summarise, kmer_analysis, html, clean) (or just press enter to do them all)  
+please give which analysis you want to build (all, demultiplex, trim, format, merge_lanes, blast, summarise, kmer_analysis, html, clean) (or just press enter to do them all)  
 "
       read_answer_with_default all
       ANALYSIS=$answer
 
-      if [[ ( $ANALYSIS != "all" ) && ( $ANALYSIS != "demultiplex" ) && ( $ANALYSIS != "trim" ) && ( $ANALYSIS != "format" ) && ( $ANALYSIS != "blast" ) && ( $ANALYSIS != "kmer_analysis" ) && ( $ANALYSIS != "summarise" ) && ( $ANALYSIS != "html" )  ]] ; then
-         echo "analysis must be one of demultiplex, trim , format, blast, summarise , kmer_analysis, html, clean) "
+      if [[ ( $ANALYSIS != "all" ) && ( $ANALYSIS != "demultiplex" ) && ( $ANALYSIS != "trim" ) && ( $ANALYSIS != "format" ) && ( $ANALYSIS != "merge_lanes" ) && ( $ANALYSIS != "blast" ) && ( $ANALYSIS != "kmer_analysis" ) && ( $ANALYSIS != "summarise" ) && ( $ANALYSIS != "html" )  ]] ; then
+         echo "analysis must be one of demultiplex, trim , format, merge_lanes, blast, summarise , kmer_analysis, html, clean) "
       else
          break
       fi
@@ -336,7 +336,7 @@ please give which analysis you want to build (all, demultiplex, trim, format, bl
    get_input_files
 
    # check if any existing results
-   for result_type in demultiplex trim format blast summarise kmer_analysis html; do
+   for result_type in demultiplex trim format blast merge_lanes summarise kmer_analysis html; do
       ls $OUT_ROOT/*.${result_type} > /dev/null 2>&1
       if [ $? == 0 ]; then
          echo "found some existing results ( e.g. ${result_type} ) under $OUT_ROOT - are you sure you want to continue (e.g. complete an interrupted run) ? (y/n)"
@@ -546,7 +546,7 @@ function get_targets() {
       
 
 
-   for analysis_type in all demultiplex trim format blast summarise kmer_analysis html clean; do
+   for analysis_type in all demultiplex trim format merge_lanes blast summarise kmer_analysis html clean; do
       echo $OUT_ROOT/$project_moniker.run_${analysis_type}  >> $OUT_ROOT/run_${analysis_type}_targets.txt
       script=$OUT_ROOT/${project_moniker}.run_${analysis_type}.sh
       if [ -f $script ]; then
