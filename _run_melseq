@@ -60,7 +60,7 @@ rm $OUT_ROOT/*format
       # we only need to get the sample info file ( needed for demultiplexing) if we are not starting with merged fasta (as in that case demultiplex has already been done)
       if [ $start_with_merged != "yes" ]; then
 
-          if [[ ( -f $OUT_ROOT/sample_info.txt ) && ( ( $ANALYSIS == "demultiplex" ) || ( $ANALYSIS == "all" ) || ( $ANALYSIS == "merge_lanes" ) )  ]]; then
+          if [[ ( -f $OUT_ROOT/sample_info.txt ) && ( ( $ANALYSIS == "demultiplex" ) || ( $ANALYSIS == "all" ) || ( $ANALYSIS == "merge_lanes" ) || ( $ANALYSIS == "trim" ) )  ]]; then
              echo "will use the following sample info . . . (press Enter/Return for a list - then press space bar to page through listing)"
              read answer
              more $OUT_ROOT/sample_info.txt
@@ -109,7 +109,7 @@ files to process, or remove it so that the data folder is re-scanned for files t
 
       # we have files to process
       # try getting the keyfile if not there and we need it 
-      if [[ ( ! -f $OUT_ROOT/sample_info.txt ) && ( $start_with_merged != "yes" ) && ( ( $ANALYSIS == "demultiplex" ) || ( $ANALYSIS == "all" ) || ( $ANALYSIS == "merge_lanes" ) ) ]]; then
+      if [[ ( ! -f $OUT_ROOT/sample_info.txt ) && ( $start_with_merged != "yes" ) && ( ( $ANALYSIS == "demultiplex" ) || ( $ANALYSIS == "all" ) || ( $ANALYSIS == "merge_lanes" ) || ( $ANALYSIS == "trim" ) ) ]]; then
          echo "trying to get keyfile... "
 
          set -x
@@ -242,7 +242,8 @@ e.g.
 
    # test if DATASET looks like a folder containing merged fasta - if so we will start with merged data
    start_with_merged=yes
-   if [ -d $DATASET ]; then
+   TEST=`echo $DATASET | awk '{print $1}' `
+   if [ -d $TEST ]; then
       ls $DATASET/*.fasta > /dev/null 2>&1
       if [ $? != 0 ]; then
          start_with_merged=no
@@ -390,7 +391,7 @@ please give which analysis you want to build (blast, summarise, kmer_analysis, h
    get_input_files
 
    # check if any existing results
-   for result_type in demultiplex trim format blast merge_lanes summarise kmer_analysis html; do
+   for result_type in demultiplex trim format blast merge_lanes trim summarise kmer_analysis html; do
       ls $OUT_ROOT/*.${result_type} > /dev/null 2>&1
       if [ $? == 0 ]; then
          echo "found some existing results ( e.g. ${result_type} ) under $OUT_ROOT - are you sure you want to continue (e.g. complete an interrupted run) ? (y/n)"
