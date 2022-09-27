@@ -69,21 +69,22 @@ def get_options():
     """
     long_description = """
 
-Utility to merge lanes from novaseq split-lanes
+Utility to help merge lanes from novaseq split-lanes. It generates the commands that would do the merge
 
 examples :
 
 
 python merge_lanes.py -M /dataset/GBS_Microbiomes_Processing/itmp/melseq/SQ1635/merged_fasta -O /dataset/GBS_Microbiomes_Processing/itmp/melseq/SQ1635/merge_lanes_commands.txt /dataset/GBS_Microbiomes_Processing/itmp/melseq/SQ1635/merge_lanes_input_file_list.txt
+python merge_lanes.py -M /dataset/hiseq/scratch/postprocessing/melseq/SQ1764_for_client/merged_trimmed -O /dataset/hiseq/scratch/postprocessing/melseq/SQ1764_for_client/merge_lanes_commands.txt /dataset/hiseq/scratch/postprocessing/melseq/SQ1764_for_client/merge_lanes_input_file_list.txt
 
 
     """
     parser = argparse.ArgumentParser(description=description, epilog=long_description, formatter_class = argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('input_fof', type=str, nargs=1,help='file of input fastq filenames')
+    parser.add_argument('input_fof', type=str, nargs=1,help='file of input fasta or fastq filenames')
     parser.add_argument('-t', '--task' , dest='task', required=False, default="generate_commands" , type=str,
                         choices=["generate_commands"], help="what you want to get / do")
     parser.add_argument('-O','--output_file', dest='output_file', type=str, default=None, help='output file to write commands to')
-    parser.add_argument('-M','--mergedir', dest='mergedir', type=str, default=None, help='merge dir')
+    parser.add_argument('-M','--mergedir', dest='mergedir', type=str, default=None, help='name of a folder where the merged files would be written')
     
 
     args = vars(parser.parse_args())
