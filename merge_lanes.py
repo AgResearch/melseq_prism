@@ -42,7 +42,7 @@ def analyse_filenames(options):
         sample=sample_match.groups()[0]
 
         # try to figure out a reasonable merge-file name
-        merge_base=re.sub("_s_[1|2|3|4|5|6|7|8]_fastq","_fastq",  base)
+        merge_base=re.sub("_s_[1|2|3|4|5|6|7|8]_fastq","_s_merged_fastq",  base)
         if merge_base == base:
             print("warning, could not match lane pattern in %s , so will use a with-lane name for the merge"%filename)
 
