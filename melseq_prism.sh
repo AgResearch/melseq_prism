@@ -226,9 +226,11 @@ PYTHONPATH="$OUT_DIR:\$PYTHONPATH"
 
    echo "
 export CONDA_ENVS_PATH=$CONDA_ENVS_PATH
-conda activate bifo-essential
+conda activate $MELSEQ_PRISM_BIN/conda/cutadapt
 PATH="$OUT_DIR:\$PATH"
 " > $OUT_DIR/configure_cutadapt_env.src
+
+echo "conda activate /dataset/gseq_processing/active/bin/melseq_prism/conda/cutadapt" > env.inc
 
   echo "
 export TMP=$OUT_DIR/TEMP
