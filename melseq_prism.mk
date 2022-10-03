@@ -26,6 +26,9 @@
 	$@.sh > $@.mk.log 2>&1
 	date > $@
 
+#note that this merge_lanes target did a simple concatenation of the non-redundant fasta files. Although this worked and passed testing, it had a couple of bugs (
+#(1) resulting fasta file has different seqs with the same name, (2) resulting fasta file was no longer "non-redundant". So this target 
+#is deprecated , and no longer part of the pipeline. Merging of lanes now done as part of the trimming step, by piping both lanes to cutadapt  
 %.merge_lanes:
 	$@.sh > $@.mk.log 2>&1
 	date > $@

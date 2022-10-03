@@ -60,7 +60,7 @@ rm $OUT_ROOT/*format
       # we only need to get the sample info file ( needed for demultiplexing) if we are not starting with merged fasta (as in that case demultiplex has already been done)
       if [ $start_with_merged != "yes" ]; then
 
-          if [[ ( -f $OUT_ROOT/sample_info.txt ) && ( ( $ANALYSIS == "demultiplex" ) || ( $ANALYSIS == "all" ) || ( $ANALYSIS == "merge_lanes" ) || ( $ANALYSIS == "trim" ) )  ]]; then
+          if [[ ( -f $OUT_ROOT/sample_info.txt ) && ( ( $ANALYSIS == "demultiplex" ) || ( $ANALYSIS == "all" ) || ( $ANALYSIS == "merge_lanes" ) || ( $ANALYSIS == "trim" ) || ( $ANALYSIS == "format" ) )  ]]; then
              echo "will use the following sample info . . . (press Enter/Return for a list - then press space bar to page through listing)"
              read answer
              more $OUT_ROOT/sample_info.txt
@@ -109,7 +109,7 @@ files to process, or remove it so that the data folder is re-scanned for files t
 
       # we have files to process
       # try getting the keyfile if not there and we need it 
-      if [[ ( ! -f $OUT_ROOT/sample_info.txt ) && ( $start_with_merged != "yes" ) && ( ( $ANALYSIS == "demultiplex" ) || ( $ANALYSIS == "all" ) || ( $ANALYSIS == "merge_lanes" ) || ( $ANALYSIS == "trim" ) ) ]]; then
+      if [[ ( ! -f $OUT_ROOT/sample_info.txt ) && ( $start_with_merged != "yes" ) && ( ( $ANALYSIS == "demultiplex" ) || ( $ANALYSIS == "all" ) || ( $ANALYSIS == "merge_lanes" ) || ( $ANALYSIS == "trim" ) || ( $ANALYSIS == "format" ) ) ]]; then
          echo "trying to get keyfile... "
 
          set -x
@@ -308,7 +308,7 @@ e.g.
          ANALYSIS=all
          return
       else
-         ANALYSIS=merge_lanes
+         ANALYSIS=format
       fi
    fi
 
@@ -665,7 +665,7 @@ if [ \$? != 0 ]; then
    echo \"format returned an error code ( \$? )\"
    exit 1
 fi
-   ls $OUT_ROOT/fasta/*.non-redundant.fasta > $OUT_ROOT/merge_lanes_input_file_list.txt
+   ls $OUT_ROOT/fasta/*.non-redundant.fasta > $OUT_ROOT/blast_input_file_list.txt
 " > $OUT_ROOT/${project_moniker}.run_format.sh
    chmod +x $OUT_ROOT/${project_moniker}.run_format.sh
 
@@ -675,6 +675,10 @@ fi
    fi
 
    ############# merge lanes ##################
+   #
+   # ***************************************
+   # ********* this target deprecated ******
+   # ***************************************
    echo "
 export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
 export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN

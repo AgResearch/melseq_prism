@@ -296,44 +296,12 @@ fi
 
 
    ################ trim script
-   # trims seqs
-   # the trim script will launch a command file that we also prepare here
-   # generate command file:
+   # The merge_lanes.py script generates a command file which both merges (novaseq) lanes, and also trims. It generates command file:
    adapter_phrase=""
    if [ ! -z "$adapter_to_trim" ]; then
       adapter_phrase="-a $adapter_to_trim "
    fi
-   rm -f $OUT_DIR/trim_commands.txt
-   touch $OUT_DIR/trim_commands.txt
-   for file in `cat $OUT_DIR/input_file_list.txt`; do
-      file_base=`basename $file .fastq.gz`
-      file_dir=`dirname $file`
-      file_dir=`basename $file_dir`
-      # dont want any more than one or 2 chunks 
-      # need to include file_dir in output base name as may be processing multiple folders - assume distinct parent folders but check this below
-      echo "tardis --hpctype $HPC_TYPE  -c 999999999 cutadapt $adapter_phrase -f fastq -q $seqqual_min  -m $seqlength_min _condition_fastq_input_$file -o _condition_uncompressedfastq_output_$OUT_DIR/trimming/${file_dir}_${file_base}_trimmed.fastq 1\> $OUT_DIR/trimming/${file_dir}_${file_base}.trimReport 2\>$OUT_DIR/trimming/${file_dir}_${file_base}.stderr" >> $OUT_DIR/trim_commands.txt
-   done
-
-   # check we have same number of output file names as commands
-   rm -f $OUT_DIR/name_check.tmp
-   for file in `cat $OUT_DIR/input_file_list.txt`; do
-      file_base=`basename $file .fastq.gz`
-      file_dir=`dirname $file`
-      file_dir=`basename $file_dir`
-      echo $OUT_DIR/trimming/${file_dir}_${file_base}_trimmed.fastq >> $OUT_DIR/name_check.tmp
-   done
-   num_out=`sort -u $OUT_DIR/name_check.tmp | wc -l | awk '{print $1}' -`
-   num_in=`wc -l $OUT_DIR/trim_commands.txt | awk '{print $1}' -`
-   if [ $num_in != $num_out ]; then
-      echo "
-*** error - there are more/less trimmed output filenames than there are trim commands ! You may need 
-*** to rename one of your input folders to avoid output name collisions.
-*** ref $OUT_DIR/name_check.tmp for distinct output names, and 
-*** $OUT_DIR/trim_commands.txt for input file processing
-"
-      exit 1
-   fi
-
+   python merge_lanes.py -t generate_merge_trim_commands -a "$adapter_phrase" -M $OUT_DIR/trimming -O $OUT_DIR/trim_commands.txt `cat $OUT_DIR/input_file_list.txt`
 
    # the script that will be launched to launch those 
 echo "#!/bin/bash
@@ -394,6 +362,9 @@ fi
    chmod +x $OUT_DIR/all.format.sh
 
    ################ merge_lanes script
+   # ***********************************************************************
+   # ******************* This target and script now deprecated *************
+   # ***********************************************************************
    # merges fasta files from different lanes  - motivated by novaseq data which arrives split into lanes
    # e.g. 
    # iramohio-01$ grep 966045_AGGCTAGGAT /dataset/GBS_Microbiomes_Processing/itmp/melseq/SQ1635/blast_input_file_list.txt
