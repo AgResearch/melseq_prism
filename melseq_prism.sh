@@ -301,7 +301,7 @@ fi
    if [ ! -z "$adapter_to_trim" ]; then
       adapter_phrase="-a $adapter_to_trim "
    fi
-   python merge_lanes.py -t generate_merge_trim_commands -a "$adapter_phrase" -M $OUT_DIR/trimming -O $OUT_DIR/trim_commands.txt `cat $OUT_DIR/input_file_list.txt`
+   python merge_lanes.py -t generate_merge_trim_commands -a "$adapter_phrase" -M $OUT_DIR/trimming -O $OUT_DIR/trim_commands.txt  $OUT_DIR/input_file_list.txt
 
    # the script that will be launched to launch those 
 echo "#!/bin/bash
