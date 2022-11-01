@@ -413,10 +413,10 @@ please give the full path to the blast database (or just press enter to use defa
          read_answer_with_default /dataset/GBS_Rumen_Metagenomes/scratch/blast_analysis/GenusPlusQuinella
          BLAST_DATABASE=$answer
 
-         if [ -f ${BLAST_DATABASE}.nin ]; then
+         if [[ -f ${BLAST_DATABASE}.nin || -f ${BLAST_DATABASE}.nal ]]; then
             break
          else
-            echo "could not find blast index file ${BLAST_DATABASE}.nin"
+            echo "could not find blast index file ${BLAST_DATABASE}.nin or ${BLAST_DATABASE}.nal"
          fi
       done
 
