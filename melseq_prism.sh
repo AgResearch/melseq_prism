@@ -141,8 +141,8 @@ function check_opts() {
       exit 1
    fi
    if [ ! -z $taxonomy_blast_database ]; then
-      if [ ! -f ${taxonomy_blast_database}.nin  ]; then
-         echo "bad blast database (cant see ${taxonomy_blast_database}.nin ) (you might need to supply the full path ?)"
+      if [[ ( ! -f ${taxonomy_blast_database}.nin ) && ( ! -f ${taxonomy_blast_database}.nal ) ]]; then
+         echo "bad blast database (cant see ${taxonomy_blast_database}.nin or ${taxonomy_blast_database}.nal ) (you might need to supply the full path ?)"
          exit 1
       fi
    fi
@@ -237,6 +237,10 @@ export TMP=$OUT_DIR/TEMP
 export TEMP=$OUT_DIR/TEMP
 export TMPDIR=$OUT_DIR/TEMP
 " > $OUT_DIR/configure_temp_env.src
+
+   echo "
+conda activate /dataset/bioinformatics_dev/active/conda-env/blast2.9
+" > $OUT_DIR/blast_env.inc
 
    cd $OUT_DIR
    mkdir TEMP
@@ -403,7 +407,7 @@ export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 cd $OUT_DIR
 mkdir -p blast
 rm -f $OUT_DIR/blast/*.fasta # remove any existing shortcuts set up by align_prism (e.g. if restarting)  
-$SEQ_PRISMS_BIN/align_prism.sh -C $HPC_TYPE -j $NUM_THREADS  -f -a blastn -r $taxonomy_blast_database -p \"-num_threads 4 -task $blast_task -word_size $wordsize -outfmt \\'6 std qlen \\' -evalue $similarity\"  -O $OUT_DIR/blast \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/blast.log 2>&1 
+$SEQ_PRISMS_BIN/align_prism.sh -C $HPC_TYPE -j $NUM_THREADS  -f -a blastn -e $OUT_DIR/blast_env.inc -r $taxonomy_blast_database -p \"-num_threads 4 -task $blast_task -word_size $wordsize -outfmt \\'6 std qlen \\' -evalue $similarity\"  -O $OUT_DIR/blast \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/blast.log 2>&1 
 
 if [ \$? != 0 ]; then
    echo \"warning blast returned an error code\"
