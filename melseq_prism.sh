@@ -473,14 +473,26 @@ mkdir -p html
 # summaries at genus and species level for the plots
 tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --weighting_method line \`cat $OUT_DIR/input_file_list.txt\` \> $OUT_DIR/html.log 2\>$OUT_DIR/html.log
 tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --summary_type summary_table --measure frequency \`cat $OUT_DIR/input_file_list.txt | awk '{printf(\"%s.taxonomy.pickle\\n\", \$1);}' -\` \> $OUT_DIR/html/taxonomy_frequency_table.txt 2\>\>$OUT_DIR/html.log
-tardis --hpctype $HPC_TYPE --shell-include-file $OUT_DIR/configure_bioconductor_env.src Rscript --vanilla $OUT_DIR/tax_summary_heatmap.r num_profiles=60 moniker=taxonomy_frequency_table datafolder=$OUT_DIR/html \>\> $OUT_DIR/html.log 2\>$OUT_DIR/html.log  
+
+# make a version with readable headings
+# e.g. SQ1917_HGT5JDRX2_s_merged_fastq.txt.gz.demultiplexed_966045_CAACTGACTG_psti.R1_trimmed.fastq.non-redundant.fasta.blastn.GTDB1.num_threads4taskblastnword_size16outfmt6stdqlen
+#evalue0.02.summary.taxonomy.pickle to 966045_CAACTGACTG_psti
+cat $OUT_DIR/html/taxonomy_frequency_table.txt | python $MELSEQ_PRISM_BIN/edit_summary_column_headings.py > $OUT_DIR/html/taxonomy_frequency_table_plot.txt
+#plot
+tardis --hpctype $HPC_TYPE --shell-include-file $OUT_DIR/configure_bioconductor_env.src Rscript --vanilla $OUT_DIR/tax_summary_heatmap.r num_profiles=60 moniker=taxonomy_frequency_table_plot datafolder=$OUT_DIR/html \>\> $OUT_DIR/html.log 2\>$OUT_DIR/html.log  
 # 
 # now do summaries just at genus level for the tabular output - i.e. just repeat above , but pass in the 
 # non-default column(s) you want summarised. (Note that the column numbering is zero based )
 
 tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --weighting_method line --columns 6 \`cat $OUT_DIR/input_file_list.txt\` \>\> $OUT_DIR/html.log 2\>$OUT_DIR/html.log
 tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --summary_type summary_table --measure frequency \`cat $OUT_DIR/input_file_list.txt | awk '{printf(\"%s.taxonomy.pickle\\n\", \$1);}' -\` \> $OUT_DIR/html/taxonomy_genus_frequency_table.txt 2\>\>$OUT_DIR/html.log
-tardis --hpctype $HPC_TYPE --shell-include-file $OUT_DIR/configure_bioconductor_env.src Rscript --vanilla $OUT_DIR/tax_summary_heatmap.r num_profiles=70 moniker=taxonomy_genus_frequency_table datafolder=$OUT_DIR/html \>\> $OUT_DIR/html.log 2\>$OUT_DIR/html.log 
+
+# make a version with readable headings
+# e.g. SQ1917_HGT5JDRX2_s_merged_fastq.txt.gz.demultiplexed_966045_CAACTGACTG_psti.R1_trimmed.fastq.non-redundant.fasta.blastn.GTDB1.num_threads4taskblastnword_size16outfmt6stdqlen
+#evalue0.02.summary.taxonomy.pickle to 966045_CAACTGACTG_psti
+cat $OUT_DIR/html/taxonomy_genus_frequency_table.txt | python $MELSEQ_PRISM_BIN/edit_summary_column_headings.py > $OUT_DIR/html/taxonomy_genus_frequency_table_plot.txt
+#plot
+tardis --hpctype $HPC_TYPE --shell-include-file $OUT_DIR/configure_bioconductor_env.src Rscript --vanilla $OUT_DIR/tax_summary_heatmap.r num_profiles=70 moniker=taxonomy_genus_frequency_table_plot datafolder=$OUT_DIR/html \>\> $OUT_DIR/html.log 2\>$OUT_DIR/html.log 
 
 if [ \$? != 0 ]; then
    echo \"warning html step returned an error code\"
