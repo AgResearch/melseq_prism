@@ -1,0 +1,80 @@
+#!/usr/bin/env Rscript
+
+args = commandArgs(trailingOnly=TRUE)
+if (length(args)==0) {
+  stop("Please provide the base name of the .resultsNucl file you wish to summarize.", call.=FALSE)
+} 
+
+file = args[1]
+#inputFile = paste(file,".resultsNucl",sep="")
+#outputFile = paste(file,".summary",sep="")
+
+inputFile = file
+base=gsub(pattern="\\.resultsNucl$","",inputFile)
+outputFile = paste(base,".summary",sep="")
+bitScoreCutoff = 50			## remove matches less than this 
+bitScoreThreshold = 0.1		## keep matches with bitscores within x proportion of max bitscore
+
+
+getID = function(st){
+   #print(paste("DEBUG st=", st))
+   st = strsplit(as.character(st[1]),":")[[1]][2]
+   #print(paste("DEBUG st=", st))
+   a = strsplit(as.character(st[1]),"_")[[1]]
+   #print(paste("DEBUG a=", a))
+   #print(paste("DEBUG a[-length(a)]=", a[-length(a)]))
+   #paste(a[-length(a)],collapse="_")
+   paste(a[1],a[2],sep="_")
+}
+lengthUnique = function(dat){
+   length(unique(dat))
+}
+
+collateResults = function(dat){
+   dat = as.data.frame(dat)
+   if(ncol(dat) == 1) dat = as.data.frame(t(dat))
+   colnames(dat) = c("qseqid","sseqid","pident","length","mismatch","gapopen","qstart","qend","sstart","send","evalue","bitscore","qlength")
+   maxBitscore = max(as.numeric(as.character(dat$bitscore)))
+   #print(paste("DEBUG maxBitscore=", maxBitscore))
+   bitThresh = round(maxBitscore*(1-bitScoreThreshold))
+   if(maxBitscore >= bitScoreCutoff){
+      dat2 = dat[as.numeric(as.character(dat$bitscore)) >= max(bitScoreCutoff,bitThresh),]
+      if(nrow(dat2)>0){
+         dat2$ID = apply(dat2[,2:3],1,getID)
+         #print(paste("DEBUG dat2$ID=", dat2$ID))
+         d2 = merge(dat2[,c(1,14)],t)
+         same = (apply(d2[,3:9],2,lengthUnique)==1 & !is.na(d2[1,3:9]))
+         outDat = d2[1,-1]
+         if(sum(same)<7) outDat[(min(which(same == F))+1):length(outDat)] = "NA"
+         count = as.numeric(strsplit(as.character(outDat$qseqid[1]),"count=")[[1]][2])
+         o=c()
+         for(i in 1:count){
+            o = rbind(o,outDat)
+         }
+         write.table(o,file=outputFile,append=T,row.names=F,col.names=F,quote=F,sep="\t")
+      }
+   }
+}
+
+oldQuery = "temp"
+dat = c()
+tax = read.csv("/dataset/gseq_processing/scratch/melseq/gtdb/GTDB1_taxonomy.csv",header=T)
+t = tax[,-(2:3)]
+#write("Query\tKingdom\tPhylum\tClass\tOrder\tFamily\tGenus\tSpecies",file=outputFile)
+
+inputCon = file(inputFile, open = "r")
+while (length(ln <- readLines(inputCon, n = 1, warn = FALSE)) > 0) {
+   q = strsplit(ln,"\t")[[1]]
+   if(oldQuery == "temp") oldQuery = q[1]
+   if(q[1] == oldQuery){
+      dat = rbind(dat,q)
+   }else{
+      #print("DEBUG : collating these results")
+      #print(dat)
+      collateResults(dat)
+      dat = q
+      oldQuery = q[1]
+   }
+} 
+collateResults(dat)
+close(inputCon)
