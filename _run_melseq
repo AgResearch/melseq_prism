@@ -7,15 +7,56 @@ export HISEQ_ROOT=/dataset/gseq_processing/scratch/illumina/hiseq
 
 NUM_THREADS=8 # for make
 
-
-melseq_version=$1
-
 function read_answer_with_default() {
    read answer
    if [ -z "$answer" ]; then
       answer=$@
    fi
 }
+
+function get_opts() {
+   INTERACTIVE=no
+   INTERACTIVE_OPT=""
+   BATCH_MODE="no"
+   help_text="
+This script is called by run_melseq (or non-interactively by the gbs pipeline)
+usage :\n
+"
+   while getopts ":hba:O:" opt; do
+   case $opt in
+       h)
+         echo -e $help_text
+         exit 0
+         ;;
+       b)
+         BATCH_MODE=yes
+         ;;
+       a)
+         ANALYSIS=$OPTARG
+         ;;
+       O)
+         OUT_ROOT=$OPTARG
+         ;;
+       \?)
+         echo "Invalid option: -$OPTARG" >&2
+         exit 1
+         ;;
+       :)
+         echo "Option -$OPTARG requires an argument." >&2
+         exit 1
+         ;;
+     esac
+   done
+
+   shift $((OPTIND-1))
+
+   if [ $BATCH_MODE == "yes" ]; then
+      DATASET=$@ 
+   else 
+      melseq_version=$1
+   fi
+}
+
 
 function get_line_count() {
    line_count=`wc -l $1 | awk '{print $1}' -`
@@ -85,8 +126,8 @@ finding files to process...(if this fails, you can make a list yourself and save
          if [ $start_with_merged != "yes" ]; then
             ls $DATASET > $OUT_ROOT/input_file_list.txt
          else
-            ls $DATASET/*.fasta > $OUT_ROOT/input_file_list.txt
-            ls $DATASET/*.fasta > $OUT_ROOT/blast_input_file_list.txt
+            ls $DATASET/*.non-redundant.fasta > $OUT_ROOT/input_file_list.txt
+            ls $DATASET/*.non-redundant.fasta > $OUT_ROOT/blast_input_file_list.txt
          fi
          get_line_count $OUT_ROOT/input_file_list.txt
          if [  $line_count == 0  ]; then
@@ -244,7 +285,7 @@ e.g.
    start_with_merged=yes
    TEST=`echo $DATASET | awk '{print $1}' `
    if [ -d $TEST ]; then
-      ls $DATASET/*.fasta > /dev/null 2>&1
+      ls $DATASET/*.non-redundant.fasta > /dev/null 2>&1
       if [ $? != 0 ]; then
          start_with_merged=no
       fi
@@ -308,7 +349,7 @@ e.g.
          ANALYSIS=all
          return
       else
-         ANALYSIS=format
+         ANALYSIS=format   # start from here at the earliest
       fi
    fi
 
@@ -823,32 +864,67 @@ function clean() {
 
 
 function main() {
-   get_run_opts
-   check_opts
-   echo_opts
-   check_env
-   configure_env
+   get_opts "$@"
 
-   if [ $ANALYSIS == "clientreport" ]; then
-      clientreport_prism
-   else
-      if [ "$DATASET" != "restarting" ]; then 
-         get_targets
-      fi
-      if [ $DRY_RUN != "no" ]; then
-         fake_prism
+   if [ $BATCH_MODE == "yes" ]; then
+      if [ $ANALYSIS == "format" ]; then
+         # set some options and initialise some variables
+         start_with_merged=no
+         echo $DATASET > $OUT_ROOT/input_file_list.txt
+         COHORT=""
+         HPC_TYPE=slurm
+         NUM_THREADS=8
+         BLAST_DATABASE=/dataset/GBS_Rumen_Metagenomes/scratch/blast_analysis/GenusPlusQuinella
+         SIMILARITY=0.02
+         SEQLENGTH_MIN=40
+         SEQQUAL_MIN=20
+         WORDSIZE=16
+         BLAST_TASK=blastn
+         DRY_RUN=no
       else
-         run_prism
-         if [ $? == 0 ] ; then
-            clean
-            echo "* done clean *"  # mainly to yield zero exit code
+         echo "in batch mode, only the fasta format option has been tested so far"
+         exit 1
+      fi
+      check_env
+      configure_env
+      get_targets
+      run_prism
+      if [ $? == 0 ] ; then
+         clean
+         echo "* done clean *"  # mainly to yield zero exit code
+      else
+         echo "error state from  run - skipping html page generation and clean-up
+         (check $OUT_ROOT/run_${ANALYSIS}.log )"
+         exit 1
+      fi
+   else
+      get_run_opts
+      check_opts
+      echo_opts
+      check_env
+      configure_env
+
+      if [ $ANALYSIS == "clientreport" ]; then
+         clientreport_prism
+      else
+         if [ "$DATASET" != "restarting" ]; then 
+            get_targets
+         fi
+         if [ $DRY_RUN != "no" ]; then
+            fake_prism
          else
-            echo "error state from  run - skipping html page generation and clean-up
-            (check $OUT_ROOT/run_${ANALYSIS}.log )"
-            exit 1
+            run_prism
+            if [ $? == 0 ] ; then
+               clean
+               echo "* done clean *"  # mainly to yield zero exit code
+            else
+               echo "error state from  run - skipping html page generation and clean-up
+               (check $OUT_ROOT/run_${ANALYSIS}.log )"
+               exit 1
+            fi
          fi
       fi
    fi
 }
 
-main
+main "$@"
