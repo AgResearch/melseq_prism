@@ -28,6 +28,10 @@ Sequence302_count=2     Bacteria        Bacteroidetes   Bacteroidia     Bacteroi
 Sequence302_count=2     Bacteria        Bacteroidetes   Bacteroidia     Bacteroidales   Prevotellaceae  Prevotella      Prevotella brevis
 Sequence311_count=1     Bacteria        Bacteroidetes   Bacteroidia     Bacteroidales   Prevotellaceae  Prevotella      NA
 
+i.e.
+
+                        div             phylum          class           order           fam             gen     spec
+
 return a tuple of the first column, and othe columns as requested 
 """
     tuple_stream = from_tab_delimited_file(filename,0,*xargs[0:])   # pick which fields define the bins 
@@ -113,9 +117,9 @@ def get_samples_tax_distribution(sample_tax_summaries, measure, sample_moniker_r
         print(string.join([str(item) for item in record],"\t"))
 
 def debug(options):
-    #test_iter = my_taxonomy_tuple_provider(options["filenames"][0], *[5,6])
-    test_iter = (my_value_provider(atuple, "line") for atuple in my_taxonomy_tuple_provider(options["filenames"][0], *[5,6]))
-    #test_iter = (my_value_provider(atuple, "parse") for atuple in my_taxonomy_tuple_provider(options["filenames"][0], *[5,6]))
+    test_iter = my_taxonomy_tuple_provider(options["filenames"][0], *[6,7])
+    #test_iter = (my_value_provider(atuple, "line") for atuple in my_taxonomy_tuple_provider(options["filenames"][0], *[6,7]))
+    #test_iter = (my_value_provider(atuple, "parse") for atuple in my_taxonomy_tuple_provider(options["filenames"][0], *[6,7]))
 
     for item in test_iter:
         print(item)
@@ -149,7 +153,7 @@ example :
                    choices=["sample_summaries", "summary_table", "dump"],help="summary type (default: sample_summaries")
     parser.add_argument('--measure', dest='measure', default="frequency", \
                    choices=["frequency", "information"],help="measure (default: frequency")
-    parser.add_argument('--columns' , dest='columns', default="5,6" ,help="comma separated list of columns to use to define bins")
+    parser.add_argument('--columns' , dest='columns', default="6,7" ,help="comma separated list of columns to use to define bins")
     parser.add_argument('--moniker' , dest='moniker', default="" ,help="optional summmary moniker e.g. L1 L2 etc")    
     parser.add_argument('--weighting_method' , dest='weighting_method', default="parse",choices=["parse", "line"],help="weighting method - either parse weight from seq suffix, or just count lines")
     parser.add_argument('--sample_moniker_regexp', dest='sample_moniker_regexp', default="^(\S+)_trimmed.fastq.non-redundant.fasta.blastn.GenusPlusQuinella.num_threads4outfmt6stdqlenevalue0.02.summary.taxonomy.pickle")
