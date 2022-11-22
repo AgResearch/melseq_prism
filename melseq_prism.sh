@@ -471,7 +471,7 @@ export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 cd $OUT_DIR
 mkdir -p html 
 # summaries at genus and species level for the plots
-tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --weighting_method line \`cat $OUT_DIR/input_file_list.txt\` \> $OUT_DIR/html.log 2\>$OUT_DIR/html.log
+tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --weighting_method line --columns 1,2,3,4,5,6,7 \`cat $OUT_DIR/input_file_list.txt\` \> $OUT_DIR/html.log 2\>$OUT_DIR/html.log
 tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --summary_type summary_table --measure frequency \`cat $OUT_DIR/input_file_list.txt | awk '{printf(\"%s.taxonomy.pickle\\n\", \$1);}' -\` \> $OUT_DIR/html/taxonomy_frequency_table.txt 2\>\>$OUT_DIR/html.log
 
 # make a version with readable headings
@@ -484,7 +484,7 @@ tardis --hpctype $HPC_TYPE --shell-include-file $OUT_DIR/configure_bioconductor_
 # now do summaries just at genus level for the tabular output - i.e. just repeat above , but pass in the 
 # non-default column(s) you want summarised. (Note that the column numbering is zero based )
 
-tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --weighting_method line --columns 6 \`cat $OUT_DIR/input_file_list.txt\` \>\> $OUT_DIR/html.log 2\>$OUT_DIR/html.log
+tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --weighting_method line --columns 1,2,3,4,5,6  \`cat $OUT_DIR/input_file_list.txt\` \>\> $OUT_DIR/html.log 2\>$OUT_DIR/html.log
 tardis --hpctype $HPC_TYPE $OUT_DIR/profile_prism.py --summary_type summary_table --measure frequency \`cat $OUT_DIR/input_file_list.txt | awk '{printf(\"%s.taxonomy.pickle\\n\", \$1);}' -\` \> $OUT_DIR/html/taxonomy_genus_frequency_table.txt 2\>\>$OUT_DIR/html.log
 
 # make a version with readable headings

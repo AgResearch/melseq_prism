@@ -153,7 +153,7 @@ example :
                    choices=["sample_summaries", "summary_table", "dump"],help="summary type (default: sample_summaries")
     parser.add_argument('--measure', dest='measure', default="frequency", \
                    choices=["frequency", "information"],help="measure (default: frequency")
-    parser.add_argument('--columns' , dest='columns', default="6,7" ,help="comma separated list of columns to use to define bins")
+    parser.add_argument('--columns' , dest='columns', default="1,2,3,4,5,6,7" ,help="comma separated list of columns to use to define bins")
     parser.add_argument('--moniker' , dest='moniker', default="" ,help="optional summmary moniker e.g. L1 L2 etc")    
     parser.add_argument('--weighting_method' , dest='weighting_method', default="parse",choices=["parse", "line"],help="weighting method - either parse weight from seq suffix, or just count lines")
     parser.add_argument('--sample_moniker_regexp', dest='sample_moniker_regexp', default="^(\S+)_trimmed.fastq.non-redundant.fasta.blastn.GenusPlusQuinella.num_threads4outfmt6stdqlenevalue0.02.summary.taxonomy.pickle")
