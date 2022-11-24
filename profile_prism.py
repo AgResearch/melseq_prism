@@ -39,7 +39,7 @@ return a tuple of the first column, and othe columns as requested
     atuple = tuple_stream.next()
     while True:
         # note that we patch NA to taxNA , as NA confuses R
-        yield ((atuple[0],re.sub("NA","taxNA", "_".join(atuple[1:]))))
+        yield ((atuple[0],re.sub("NA","taxNA", ";".join(atuple[1:]))))
         atuple = tuple_stream.next()
 
 
