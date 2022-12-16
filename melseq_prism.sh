@@ -16,6 +16,7 @@ function get_opts() {
    ENZYME_INFO=""
    taxonomy_blast_database=""
    taxonomy_lookup_file=
+   taxonomiser=$MELSEQ_PRISM_BIN/summarizeR_counts.code
    seqlength_min=40
    seqqual_min=20
    similarity=0.02
@@ -41,7 +42,7 @@ example:\n
 "
 
    # defaults:
-   while getopts ":nhdfO:C:b:t:m:s:q:a:l:e:A:w:T:" opt; do
+   while getopts ":nhdfO:C:b:t:m:s:q:a:l:e:A:w:T:t:" opt; do
    case $opt in
        n)
          DRY_RUN=yes
@@ -82,6 +83,9 @@ example:\n
          ;;
        T)
          blast_task=$OPTARG
+         ;;
+       t)
+         taxonomiser=$OPTARG
          ;;
        A)
          adapter_to_trim=$OPTARG
@@ -177,7 +181,11 @@ function check_opts() {
          exit 1
       fi
    fi
-
+  
+   if [ ! -f $taxonomiser ]; then
+      echo "Error taxonomiser $taxonomiser does not exist"
+      exit 1
+   fi
 }
 
 function echo_opts() {
@@ -186,6 +194,7 @@ function echo_opts() {
   echo DEBUG=$DEBUG
   echo HPC_TYPE=$HPC_TYPE
   echo taxonomy_blast_database=$taxonomy_blast_database
+  echo taxonomiser=$taxonomiser
   echo similarity=$similarity
   echo seqqal_min=$seqqal_min
   echo seqlength_min=$seqlength_min
@@ -208,7 +217,7 @@ function configure_env() {
    cp ./melseq_prism.mk $OUT_DIR
    cp ./add_sample_name.py $OUT_DIR
    cp ./countUniqueReads.sh $OUT_DIR
-   cp ./summarizeR_counts.code $OUT_DIR
+   cp $taxonomiser $OUT_DIR
    cp $GBS_PRISM_BIN/demultiplex_prism.sh $OUT_DIR
    cp $GBS_PRISM_BIN/demultiplex_prism.mk $OUT_DIR
    cp profile_prism.py $OUT_DIR
@@ -420,12 +429,13 @@ fi
    # summarise results 
    # the summary  script will launch a command file that we also prepare here
    # generate command file:
+   taxonomiser_base=`basename $taxonomiser`
    rm -f $OUT_DIR/summary_commands.txt
    touch $OUT_DIR/summary_commands.txt
    # generate command file
    for file in `cat $OUT_DIR/input_file_list.txt`; do
       base=`basename $file .results.gz`
-      echo "gunzip -c $file  > $OUT_DIR/summary/${base}.resultsNucl ; Rscript --vanilla $OUT_DIR/summarizeR_counts.code $OUT_DIR/summary/${base}.resultsNucl 1>$OUT_DIR/summary/${base}.resultsNucl.stdout 2>$OUT_DIR/summary/${base}.resultsNucl.stderr; /usr/bin/rm -f $OUT_DIR/summary/${base}.resultsNucl" >> $OUT_DIR/summary_commands.txt
+      echo "gunzip -c $file  > $OUT_DIR/summary/${base}.resultsNucl ; Rscript --vanilla $OUT_DIR/$taxonomiser_base $OUT_DIR/summary/${base}.resultsNucl 1>$OUT_DIR/summary/${base}.resultsNucl.stdout 2>$OUT_DIR/summary/${base}.resultsNucl.stderr; /usr/bin/rm -f $OUT_DIR/summary/${base}.resultsNucl" >> $OUT_DIR/summary_commands.txt
    done
 
    # the script that will be launched to launch those 
