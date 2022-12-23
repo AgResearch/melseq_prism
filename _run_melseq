@@ -498,7 +498,7 @@ please give the full path to the taxonomiser script  (or just press enter to use
    if [ 1 ] ; then
       while [ 1 ] ; do
          echo "
-please specify the similarity (as an evalue) to use for clustering (or just press enter to use default, 0.02) 
+please specify the similarity (as an evalue) to use for the taxonomy blast runs (or just press enter to use default, 0.02) 
 "
          read_answer_with_default 0.02
          SIMILARITY=$answer
@@ -513,6 +513,29 @@ please specify the similarity (as an evalue) to use for clustering (or just pres
 
       echo "will use similarity $SIMILARITY"
    fi
+
+
+   ####### get and check additional blast options for GTDB 
+   BLAST_EXTRA=""
+   blast_base=`basename $BLAST_DATABASE`
+   if [ $blast_base == "GTDB1" ]; then
+      BLAST_EXTRA="-max_hsps 1  -best_hit_overhang .15 -best_hit_score_edge .1"
+   fi
+   if [ 1 ] ; then
+      while [ 1 ] ; do
+         echo "
+please enter any custom additional blast parameters for this database (or just press enter to use default, $BLAST_EXTRA  )
+"
+         read_answer_with_default "$BLAST_EXTRA"
+         BLAST_EXTRA="$answer"
+
+         break
+      done
+
+      echo "will use additional blast parameters $BLAST_EXTRA"
+   fi
+
+
 
 
    ####### get and check the minimum length to use  
@@ -775,7 +798,7 @@ export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
 export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 export GBS_PRISM_BIN=$GBS_PRISM_BIN
 
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a blast -t $TAXONOMISER  -s $SIMILARITY -b $BLAST_DATABASE -w $WORDSIZE -T $BLAST_TASK -O $OUT_ROOT \`cat $OUT_ROOT/blast_input_file_list.txt\` > $OUT_ROOT/run_blast.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a blast -t $TAXONOMISER  -s $SIMILARITY -b $BLAST_DATABASE -w $WORDSIZE -T $BLAST_TASK -O $OUT_ROOT -x \"$BLAST_EXTRA\" \`cat $OUT_ROOT/blast_input_file_list.txt\` > $OUT_ROOT/run_blast.log 2>&1
 if [ \$? != 0 ]; then
    echo \"blast returned an error code ( \$? )\"
    exit 1

@@ -23,6 +23,7 @@ function get_opts() {
    wordsize=16
    blast_task=blastn
    adapter_to_trim=""
+   blast_extra=""
    help_text="
 \n
 ./melseq_prism.sh  [-h] [-n] [-d] -a analysis -b blast_database [-w wordsize (16)] [-T blastn|megablast (blastn)] -s similarity (.02)] [-m min_length (40)] [-q min_qual (20)]  [-C local|slurm (slurm)] -O outdir input_file_names\n
@@ -42,7 +43,7 @@ example:\n
 "
 
    # defaults:
-   while getopts ":nhdfO:C:b:t:m:s:q:a:l:e:A:w:T:t:" opt; do
+   while getopts ":nhdfO:C:b:t:m:s:q:a:l:e:A:w:T:t:x:" opt; do
    case $opt in
        n)
          DRY_RUN=yes
@@ -96,6 +97,10 @@ example:\n
        s)
          similarity=$OPTARG
          ;;
+       x)
+         blast_extra=$OPTARG
+         ;;
+
        \?)
          echo "Invalid option: -$OPTARG" >&2
          exit 1
@@ -186,6 +191,7 @@ function check_opts() {
       echo "Error taxonomiser $taxonomiser does not exist"
       exit 1
    fi
+
 }
 
 function echo_opts() {
@@ -195,6 +201,7 @@ function echo_opts() {
   echo HPC_TYPE=$HPC_TYPE
   echo taxonomy_blast_database=$taxonomy_blast_database
   echo taxonomiser=$taxonomiser
+  echo blast_extra=$blast_extra
   echo similarity=$similarity
   echo seqqal_min=$seqqal_min
   echo seqlength_min=$seqlength_min
@@ -250,6 +257,12 @@ export TMPDIR=$OUT_DIR/TEMP
    echo "
 conda activate /dataset/bioinformatics_dev/active/conda-env/blast2.9
 " > $OUT_DIR/blast_env.inc
+
+
+   echo "
+max_tasks = 80
+jobtemplatefile = \"$MELSEQ_PRISM_BIN/etc/melseq_slurm_array_job\"
+" > $OUT_DIR/tardis.toml
 
    cd $OUT_DIR
    mkdir TEMP
@@ -415,8 +428,9 @@ export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 
 cd $OUT_DIR
 mkdir -p blast
+cp $OUT_DIR/tardis.toml blast
 rm -f $OUT_DIR/blast/*.fasta # remove any existing shortcuts set up by align_prism (e.g. if restarting)  
-$SEQ_PRISMS_BIN/align_prism.sh -C $HPC_TYPE -j $NUM_THREADS  -f -a blastn -e $OUT_DIR/blast_env.inc -r $taxonomy_blast_database -p \"-num_threads 4 -task $blast_task -word_size $wordsize -outfmt \\'6 std qlen \\' -evalue $similarity\"  -O $OUT_DIR/blast \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/blast.log 2>&1 
+$SEQ_PRISMS_BIN/align_prism.sh -C $HPC_TYPE -j 8 -B 4 -m 80 -f -a blastn -e $OUT_DIR/blast_env.inc -r $taxonomy_blast_database -p \"-num_threads 8 -task $blast_task -word_size $wordsize -outfmt \\'6 std qlen \\' -evalue $similarity $blast_extra \"  -O $OUT_DIR/blast \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/blast.log 2>&1 
 
 if [ \$? != 0 ]; then
    echo \"warning blast returned an error code\"
