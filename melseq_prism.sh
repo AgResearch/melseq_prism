@@ -261,8 +261,15 @@ conda activate /dataset/bioinformatics_dev/active/conda-env/blast2.9
 
    echo "
 max_tasks = 80
-jobtemplatefile = \"$MELSEQ_PRISM_BIN/etc/melseq_slurm_array_job\"
-" > $OUT_DIR/tardis.toml
+jobtemplatefile = \"$MELSEQ_PRISM_BIN/etc/melseq_blast_slurm_array_job\"
+" > $OUT_DIR/tardis.toml.blast
+
+   echo "
+max_tasks = 400
+jobtemplatefile = \"$MELSEQ_PRISM_BIN/etc/melseq_summary_slurm_array_job\"
+" > $OUT_DIR/tardis.toml.summary
+
+   cp $OUT_DIR/tardis.toml.summary $OUT_DIR/tardis.toml  #default for other tasks as well 
 
    cd $OUT_DIR
    mkdir TEMP
@@ -428,7 +435,7 @@ export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 
 cd $OUT_DIR
 mkdir -p blast
-cp $OUT_DIR/tardis.toml blast
+cp $OUT_DIR/tardis.toml.blast blast/tardis.toml
 rm -f $OUT_DIR/blast/*.fasta # remove any existing shortcuts set up by align_prism (e.g. if restarting)  
 $SEQ_PRISMS_BIN/align_prism.sh -C $HPC_TYPE -j 8 -B 4 -m 80 -f -a blastn -e $OUT_DIR/blast_env.inc -r $taxonomy_blast_database -p \"-num_threads 8 -task $blast_task -word_size $wordsize -outfmt \\'6 std qlen \\' -evalue $similarity $blast_extra \"  -O $OUT_DIR/blast \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/blast.log 2>&1 
 
@@ -459,6 +466,7 @@ export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 
 cd $OUT_DIR
 mkdir -p summary
+cp $OUT_DIR/tardis.toml.summary tardis.toml
 tardis --hpctype $HPC_TYPE -c 1 -d $OUT_DIR/summary  --shell-include-file $OUT_DIR/configure_temp_env.src source _condition_text_input_$OUT_DIR/summary_commands.txt > $OUT_DIR/summary.log 2>&1
 if [ \$? != 0 ]; then
    echo \"warning summary returned an error code\"
