@@ -1,7 +1,11 @@
+
+library(data.table)
+
 #!/usr/bin/env Rscript
 #
 # Original Author Melanie Hess, 2019
 # Modified to handle gtdb, and add comments and references, 2022/2023 Alan McCulloch
+# Modified to use data.table instead of data.frame to reduce computational time, 2023 Timothy Bilton
 #
 # This script assigns reads to the lowest common ancestor (LCA) of the set of taxa that it hit in the blast run (as per the MEGAN algorithm)
 #
@@ -14,7 +18,7 @@
 # "Reads were assigned to a taxonomic node using the algorithm from MEGAN [27] implemented in R with default 
 # parameters: a minimum bitscore of 50 and considering only hits within 10% of the maximum bitscore for a query read.
 # 
-# Huson DH, Auch AF, Qi J, Schuster SC. MEGAN analysis of metagenomic data. Genome Res. 2007;17(3):377–86. 10.1101/gr.5969107
+# Huson DH, Auch AF, Qi J, Schuster SC. MEGAN analysis of metagenomic data. Genome Res. 2007;17(3):377â€“86. 10.1101/gr.5969107
 # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1800929/
 #
 # example usage 
@@ -57,28 +61,11 @@
 #Sequence62_count=3      Bacteria        Bacteroidota    Bacteroidia     Bacteroidales   P3      UBA1711 UBA1711 sp002368955
 #Sequence62_count=3      Bacteria        Bacteroidota    Bacteroidia     Bacteroidales   P3      UBA1711 UBA1711 sp002368955
 #
-#
-# 
-# To Do 
-# ======
-# 1. Currently this is very slow and may take over 24 hours to process all the hits for a sample. The problem will be the merge between the big taxonomy data frame (317,543 rows), and the 
-#    hits for each query - i.e. the line "d2 = merge(dat2[,c(1,14)],t)" below. The previous Hungate based taxonomy file had only 419 rows ! 
-#
-#    Suggestion for a minimal refactoring of this script: "pre-merge" the blast hits with the taxonomy, so we can delete that line. So we would : 
-# 
-#    * load the gtdb taxonomy file into a database, and index the accession column on which the merge is done. That is a one-off setup
-#
-#    Then in the pipeline : 
-# 
-#    * preprocess the blast hit file with new script which will append the taxonomy of each accession, to the blast hit file - this script will use a SQL query to look up the taxonomy for each record and will be fast due to the indexing.
-#    * the present script then no longer needs the line that does the merge, as the blast hits read in will already be merged
-# 
-
 
 args = commandArgs(trailingOnly=TRUE)
 if (length(args)==0) {
   stop("Please provide the base name of the .resultsNucl file you wish to summarize.", call.=FALSE)
-} 
+}
 
 file = args[1]
 #inputFile = paste(file,".resultsNucl",sep="")
@@ -86,9 +73,13 @@ file = args[1]
 
 inputFile = file
 base=gsub(pattern="\\.resultsNucl$","",inputFile)
+
+# parse output filename and initialise it 
 outputFile = paste(base,".summary",sep="")
-bitScoreCutoff = 50			# remove matches less than this 
-bitScoreThreshold = 0.1		        # keep matches with bitscores within x proportion of max bitscore
+cat(NULL,file=outputFile)
+
+bitScoreCutoff = 50                   # remove matches less than this 
+bitScoreThreshold = 0.1               # keep matches with bitscores within x proportion of max bitscore
 
 
 getID = function(st){
@@ -102,7 +93,7 @@ getID = function(st){
    paste(a[1],a[2],sep="_")
 }
 lengthUnique = function(dat){
-   length(unique(dat))
+  length(unique(dat))
 }
 
 collateResults = function(dat){
@@ -110,7 +101,7 @@ collateResults = function(dat){
    # this method applies the LCA algorithm to all the hits of a given query sequence (as contained in "dat")
    # 
    dat = as.data.frame(dat)
-   if(ncol(dat) == 1) dat = as.data.frame(t(dat))                   # not quite sure why this needed
+   if(ncol(dat) == 1) dat = as.data.frame(t(dat))                   # if there is only one row, then object is a vector and needs to be converted to data.frame
    colnames(dat) = c("qseqid","sseqid","pident","length","mismatch","gapopen","qstart","qend","sstart","send","evalue","bitscore","qlength")
    maxBitscore = max(as.numeric(as.character(dat$bitscore)))        # get max bitscore of all hits 
    #print(paste("DEBUG maxBitscore=", maxBitscore))
@@ -120,16 +111,15 @@ collateResults = function(dat){
       if(nrow(dat2)>0){                                             # but nrow shouldn't be = 0 ?  -however no harm
          dat2$ID = apply(dat2[,2:3],1,getID)                        # get the ID of the accession 
          #print(paste("DEBUG dat2$ID=", dat2$ID))
+         dat2 = as.data.table(dat2)
+         setkey(dat2, ID)
          d2 = merge(dat2[,c(1,14)],t)                               # do an inner join to the big taxonomy array - this must be very slow now !  The gtdb taxonomy array has 317,543 rows 
          same = (apply(d2[,3:9],2,lengthUnique)==1 & !is.na(d2[1,3:9]))   # The guts of the LCA algroithm - counting number of distinct species, genus etc. Only if it is 1 do we assign at that level, else it is NA
          outDat = d2[1,-1]
-         if(sum(same)<7) outDat[(min(which(same == F))+1):length(outDat)] = "NA"
+         if(sum(same)<7) outDat[1,(min(which(same == F))+1):length(outDat)] = "NA"
          count = as.numeric(strsplit(as.character(outDat$qseqid[1]),"count=")[[1]][2])
-         o=c()
-         for(i in 1:count){
-            o = rbind(o,outDat)
-         }
-         write.table(o,file=outputFile,append=T,row.names=F,col.names=F,quote=F,sep="\t")
+         outDat = do.call("rbind",replicate(n = count, outDat, simplify=FALSE))
+         write.table(outDat,file=outputFile,append=T,row.names=F,col.names=F,quote=F,sep="\t")
       }
    }
 }
@@ -147,8 +137,9 @@ dat = c()
 #GCF_002513785.1,Escherichia coli,Escherichia,Bacteria,Proteobacteria,Gammaproteobacteria,Enterobacterales,Enterobacteriaceae,Escherichia,Escherichia coli
 # ...etc
 # 
-tax = read.csv("/dataset/gseq_processing/scratch/melseq/gtdb/GTDB1_taxonomy.csv",header=T)
+tax = data.table::fread("/dataset/gseq_processing/scratch/melseq/gtdb/GTDB1_taxonomy.csv",header=T)
 t = tax[,-(2:3)]               # snip out the redundant columns 2 and 3
+setkey(t, ID)
 #write("Query\tKingdom\tPhylum\tClass\tOrder\tFamily\tGenus\tSpecies",file=outputFile)
 
 # read the blast hits grouping by query, pass all the hits for each query to collate Results function 

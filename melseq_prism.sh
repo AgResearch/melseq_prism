@@ -249,10 +249,11 @@ PATH="$OUT_DIR:\$PATH"
 echo "conda activate /dataset/gseq_processing/active/bin/melseq_prism/conda/cutadapt" > env.inc
 
   echo "
+conda activate /dataset/gseq_processing/active/bin/melseq_prism/conda/melseq_prism # provides e.g. data.table
 export TMP=$OUT_DIR/TEMP
 export TEMP=$OUT_DIR/TEMP
 export TMPDIR=$OUT_DIR/TEMP
-" > $OUT_DIR/configure_temp_env.src
+" > $OUT_DIR/configure_summary_env.src
 
    echo "
 conda activate /dataset/bioinformatics_dev/active/conda-env/blast2.9
@@ -467,7 +468,7 @@ export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 cd $OUT_DIR
 mkdir -p summary
 cp $OUT_DIR/tardis.toml.summary tardis.toml
-tardis --hpctype $HPC_TYPE -c 1 -d $OUT_DIR/summary  --shell-include-file $OUT_DIR/configure_temp_env.src source _condition_text_input_$OUT_DIR/summary_commands.txt > $OUT_DIR/summary.log 2>&1
+tardis --hpctype $HPC_TYPE -c 1 -d $OUT_DIR/summary  --shell-include-file $OUT_DIR/configure_summary_env.src source _condition_text_input_$OUT_DIR/summary_commands.txt > $OUT_DIR/summary.log 2>&1
 if [ \$? != 0 ]; then
    echo \"warning summary returned an error code\"
    exit 1
