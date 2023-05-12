@@ -706,13 +706,19 @@ function get_targets() {
    done
 
 
+   dry_run_phrase=""
+   if [ $DRY_RUN != "no" ]; then
+      dry_run_phrase="-n"
+   fi
+
+
    ############# demultiplex ##################
    echo "
 export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN 
 export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 export GBS_PRISM_BIN=$GBS_PRISM_BIN
 cp $OUT_ROOT/input_file_list.txt $OUT_ROOT/demultiplex_input_file_list.txt
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a demultiplex -t $TAXONOMISER -l $OUT_ROOT/sample_info.txt -O $OUT_ROOT \`cat $OUT_ROOT/demultiplex_input_file_list.txt\` > $OUT_ROOT/run_demultiplex.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh $dry_run_phrase -C $HPC_TYPE -a demultiplex -t $TAXONOMISER -l $OUT_ROOT/sample_info.txt -O $OUT_ROOT \`cat $OUT_ROOT/demultiplex_input_file_list.txt\` > $OUT_ROOT/run_demultiplex.log 2>&1
 if [ \$? != 0 ]; then
    echo \"demultiplex returned an error code ( \$? )\"
    exit 1
@@ -733,7 +739,7 @@ export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
 export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 export GBS_PRISM_BIN=$GBS_PRISM_BIN
 
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a trim -t $TAXONOMISER -m $SEQLENGTH_MIN -q $SEQQUAL_MIN -O $OUT_ROOT \`cat $OUT_ROOT/trim_input_file_list.txt\` > $OUT_ROOT/run_trim.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh $dry_run_phrase -C $HPC_TYPE -a trim -t $TAXONOMISER -m $SEQLENGTH_MIN -q $SEQQUAL_MIN -O $OUT_ROOT \`cat $OUT_ROOT/trim_input_file_list.txt\` > $OUT_ROOT/run_trim.log 2>&1
 if [ \$? != 0 ]; then
    echo \"trim returned an error code ( \$? )\"
    exit 1
@@ -753,7 +759,7 @@ export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
 export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 export GBS_PRISM_BIN=$GBS_PRISM_BIN
 
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a format -t $TAXONOMISER -O $OUT_ROOT \`cat $OUT_ROOT/format_input_file_list.txt\` > $OUT_ROOT/run_format.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh $dry_run_phrase -C $HPC_TYPE -a format -t $TAXONOMISER -O $OUT_ROOT \`cat $OUT_ROOT/format_input_file_list.txt\` > $OUT_ROOT/run_format.log 2>&1
 if [ \$? != 0 ]; then
    echo \"format returned an error code ( \$? )\"
    exit 1
@@ -777,7 +783,7 @@ export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
 export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 export GBS_PRISM_BIN=$GBS_PRISM_BIN
 
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a merge_lanes -t $TAXONOMISER -O $OUT_ROOT \`cat $OUT_ROOT/merge_lanes_input_file_list.txt\` > $OUT_ROOT/run_merge_lanes.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh $dry_run_phrase -C $HPC_TYPE -a merge_lanes -t $TAXONOMISER -O $OUT_ROOT \`cat $OUT_ROOT/merge_lanes_input_file_list.txt\` > $OUT_ROOT/run_merge_lanes.log 2>&1
 if [ \$? != 0 ]; then
    echo \"format returned an error code ( \$? )\"
    exit 1
@@ -798,7 +804,7 @@ export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
 export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 export GBS_PRISM_BIN=$GBS_PRISM_BIN
 
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a blast -t $TAXONOMISER  -s $SIMILARITY -b $BLAST_DATABASE -w $WORDSIZE -T $BLAST_TASK -O $OUT_ROOT -x \"$BLAST_EXTRA\" \`cat $OUT_ROOT/blast_input_file_list.txt\` > $OUT_ROOT/run_blast.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh $dry_run_phrase -C $HPC_TYPE -a blast -t $TAXONOMISER  -s $SIMILARITY -b $BLAST_DATABASE -w $WORDSIZE -T $BLAST_TASK -O $OUT_ROOT -x \"$BLAST_EXTRA\" \`cat $OUT_ROOT/blast_input_file_list.txt\` > $OUT_ROOT/run_blast.log 2>&1
 if [ \$? != 0 ]; then
    echo \"blast returned an error code ( \$? )\"
    exit 1
@@ -814,7 +820,7 @@ export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
 export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 export GBS_PRISM_BIN=$GBS_PRISM_BIN
 
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a summarise -t $TAXONOMISER -O $OUT_ROOT \`cat $OUT_ROOT/summarise_input_file_list.txt\` > $OUT_ROOT/run_summarise.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh $dry_run_phrase -C $HPC_TYPE -a summarise -t $TAXONOMISER -O $OUT_ROOT \`cat $OUT_ROOT/summarise_input_file_list.txt\` > $OUT_ROOT/run_summarise.log 2>&1
 if [ \$? != 0 ]; then
    echo \"summarise returned an error code ( \$? )\"
    exit 1
@@ -830,7 +836,7 @@ export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
 export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 export GBS_PRISM_BIN=$GBS_PRISM_BIN
 
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a kmer_analysis -t $TAXONOMISER  -O $OUT_ROOT \`cat $OUT_ROOT/kmer_input_file_list.txt\` > $OUT_ROOT/run_kmer_analysis.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh $dry_run_phrase -C $HPC_TYPE -a kmer_analysis -t $TAXONOMISER  -O $OUT_ROOT \`cat $OUT_ROOT/kmer_input_file_list.txt\` > $OUT_ROOT/run_kmer_analysis.log 2>&1
 if [ \$? != 0 ]; then
    echo \"kmer_analysis returned an error code ( \$? )\"
    exit 1
@@ -844,7 +850,7 @@ export SEQ_PRISMS_BIN=$SEQ_PRISMS_BIN
 export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 export GBS_PRISM_BIN=$GBS_PRISM_BIN
 
-$MELSEQ_PRISM_BIN/melseq_prism.sh -C $HPC_TYPE -a html -t $TAXONOMISER  -O $OUT_ROOT \`cat $OUT_ROOT/html_input_file_list.txt\` > $OUT_ROOT/run_html_summary.log 2>&1
+$MELSEQ_PRISM_BIN/melseq_prism.sh $dry_run_phrase -C $HPC_TYPE -a html -t $TAXONOMISER  -O $OUT_ROOT \`cat $OUT_ROOT/html_input_file_list.txt\` > $OUT_ROOT/run_html_summary.log 2>&1
 if [ \$? != 0 ]; then
    echo \"html_summary returned an error code ( \$? )\"
    exit 1
@@ -861,7 +867,18 @@ function fake_prism() {
 (logging to $OUT_ROOT/run_${ANALYSIS}.log
 
    "
-   make -f run_melseq.mk -n -d -k  --no-builtin-rules -j $NUM_THREADS `cat $OUT_ROOT/run_${ANALYSIS}_targets.txt` > $OUT_ROOT/run_${ANALYSIS}.log 2>&1
+
+   echo "
+export SEQ_PRISMS_BIN=/dataset/gseq_processing/active/bin/melseq_prism/seq_prisms
+export GBS_PRISM_BIN=/dataset/gseq_processing/active/bin/gbs_prism
+export MELSEQ_PRISM_BIN=/dataset/gseq_processing/active/bin/melseq_prism
+export HISEQ_ROOT=/dataset/gseq_processing/scratch/illumina/hiseq
+cd $OUT_ROOT
+make -f run_melseq.mk -n -d -k  --no-builtin-rules -j $NUM_THREADS \`cat $OUT_ROOT/run_${ANALYSIS}_targets.txt\` > $OUT_ROOT/dryrun_${ANALYSIS}.log 2>&1
+" > $OUT_ROOT/restart.src
+
+
+   make -f run_melseq.mk -n -d -k  --no-builtin-rules -j $NUM_THREADS `cat $OUT_ROOT/run_${ANALYSIS}_targets.txt` > $OUT_ROOT/dryrun_${ANALYSIS}.log 2>&1
 
 echo "
 ** done **
@@ -895,8 +912,6 @@ source $OUT_ROOT/restart.src
 "
 
    time make -f run_melseq.mk -d -k  --no-builtin-rules -j $NUM_THREADS `cat $OUT_ROOT/run_${ANALYSIS}_targets.txt` > $OUT_ROOT/run_melseq.log 2>&1
-   echo "counting up inputs and outputs at each stage for audit..."
-   $MELSEQ_PRISM_BIN/check_processing.sh $OUT_ROOT > $OUT_ROOT/check_processing.log 2>&1
 }
 
 function html_prism() {
@@ -920,7 +935,7 @@ function main() {
 
    if [ $BATCH_MODE == "yes" ]; then
       if [ $ANALYSIS == "format" ]; then
-         # set some options and initialise some variables
+         # set some options and initialise some variables (some irrelevant to this task but need to satisfy later option checking)
          start_with_merged=no
          echo $DATASET > $OUT_ROOT/input_file_list.txt
          COHORT=""
@@ -968,6 +983,8 @@ function main() {
          else
             run_prism
             if [ $? == 0 ] ; then
+               echo "counting up inputs and outputs at each stage for audit..."
+               $MELSEQ_PRISM_BIN/check_processing.sh $OUT_ROOT > $OUT_ROOT/check_processing.log 2>&1
                clean
                echo "* done clean *"  # mainly to yield zero exit code
             else
