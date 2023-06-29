@@ -261,7 +261,7 @@ conda activate /dataset/bioinformatics_dev/active/conda-env/blast2.9
 
 
    echo "
-max_tasks = 80
+max_tasks = 40
 jobtemplatefile = \"$MELSEQ_PRISM_BIN/etc/melseq_blast_slurm_array_job\"
 " > $OUT_DIR/tardis.toml.blast
 
@@ -307,6 +307,13 @@ function get_targets() {
       echo $OUT_DIR/all.$analysis_type  > $OUT_DIR/${analysis_type}_targets.txt
    done
 
+   dry_run_phrase=""
+   if [ $DRY_RUN != "no" ]; then
+      dry_run_phrase="-n"      # currently only passed on to the blast, demultiplex and kmer scripting. Note to dry run these they need to then be executed stand-alone,
+                               # as in dry-run mode, this script calls make in dry-run mode, which does not execute anything 
+   fi
+
+
    ################ demultiplex script 
    enzyme_info_phrase=""
    if [ ! -z $ENZYME_INFO ]; then
@@ -320,7 +327,7 @@ export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 cd $OUT_DIR
 mkdir -p demultiplex
 # run demultiplexing
-time ./demultiplex_prism.sh -C $HPC_TYPE -x gbsx -l $SAMPLE_INFO  $enzyme_info_phrase  -O $OUT_DIR/demultiplex \`cat $OUT_DIR/input_file_list.txt\`
+time ./demultiplex_prism.sh $dry_run_phrase -C $HPC_TYPE -x gbsx -l $SAMPLE_INFO  $enzyme_info_phrase  -O $OUT_DIR/demultiplex \`cat $OUT_DIR/input_file_list.txt\`
 if [ \$? != 0 ]; then
    echo \"warning demultiplex returned an error code\"
    exit 1
@@ -437,8 +444,9 @@ export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 cd $OUT_DIR
 mkdir -p blast
 cp $OUT_DIR/tardis.toml.blast blast/tardis.toml
+cd blast
 rm -f $OUT_DIR/blast/*.fasta # remove any existing shortcuts set up by align_prism (e.g. if restarting)  
-$SEQ_PRISMS_BIN/align_prism.sh -C $HPC_TYPE -j 8 -B 4 -m 80 -f -a blastn -e $OUT_DIR/blast_env.inc -r $taxonomy_blast_database -p \"-num_threads 8 -task $blast_task -word_size $wordsize -outfmt \\'6 std qlen \\' -evalue $similarity $blast_extra \"  -O $OUT_DIR/blast \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/blast.log 2>&1 
+$SEQ_PRISMS_BIN/align_prism.sh $dry_run_phrase -C $HPC_TYPE -j 8 -B 4 -m 80 -f -a blastn -e $OUT_DIR/blast_env.inc -r $taxonomy_blast_database -p \"-num_threads 8 -task $blast_task -word_size $wordsize -outfmt \\'6 std qlen \\' -evalue $similarity $blast_extra \"  -O $OUT_DIR/blast \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/blast.log 2>&1 
 
 if [ \$? != 0 ]; then
    echo \"warning blast returned an error code\"
@@ -485,7 +493,7 @@ export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 
 cd $OUT_DIR
 mkdir -p kmer_analysis
-$SEQ_PRISMS_BIN/kmer_prism.sh -C $HPC_TYPE -a fasta -p \"-k 6 -A --weighting_method tag_count\" -O $OUT_DIR/kmer_analysis \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/kmer_analysis.log 2>&1  
+$SEQ_PRISMS_BIN/kmer_prism.sh $dry_run_phrase -C $HPC_TYPE -a fasta -p \"-k 6 -A --weighting_method tag_count\" -O $OUT_DIR/kmer_analysis \`cat $OUT_DIR/input_file_list.txt\` > $OUT_DIR/kmer_analysis.log 2>&1  
 
 if [ \$? != 0 ]; then
    echo \"warning kmer_analysis returned an error code\"
