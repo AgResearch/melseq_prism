@@ -465,7 +465,7 @@ fi
    # generate command file
    for file in `cat $OUT_DIR/input_file_list.txt`; do
       base=`basename $file .results.gz`
-      echo "gunzip -c $file  > $OUT_DIR/summary/${base}.resultsNucl ; Rscript --vanilla $OUT_DIR/$taxonomiser_base $OUT_DIR/summary/${base}.resultsNucl 1>$OUT_DIR/summary/${base}.resultsNucl.stdout 2>$OUT_DIR/summary/${base}.resultsNucl.stderr; /usr/bin/rm -f $OUT_DIR/summary/${base}.resultsNucl" >> $OUT_DIR/summary_commands.txt
+      echo "set -e; gunzip -c $file  > $OUT_DIR/summary/${base}.resultsNucl ; Rscript --vanilla $OUT_DIR/$taxonomiser_base $OUT_DIR/summary/${base}.resultsNucl 1>$OUT_DIR/summary/${base}.resultsNucl.stdout 2>$OUT_DIR/summary/${base}.resultsNucl.stderr; /usr/bin/rm -f $OUT_DIR/summary/${base}.resultsNucl" >> $OUT_DIR/summary_commands.txt
    done
 
    # the script that will be launched to launch those 
@@ -476,7 +476,7 @@ export MELSEQ_PRISM_BIN=$MELSEQ_PRISM_BIN
 cd $OUT_DIR
 mkdir -p summary
 cp $OUT_DIR/tardis.toml.summary tardis.toml
-tardis --hpctype $HPC_TYPE -c 1 -d $OUT_DIR/summary  --shell-include-file $OUT_DIR/configure_summary_env.src source _condition_text_input_$OUT_DIR/summary_commands.txt > $OUT_DIR/summary.log 2>&1
+tardis --hpctype $HPC_TYPE -c 1 -d $OUT_DIR/summary  --shell-include-file $OUT_DIR/configure_summary_env.src /bin/sh _condition_text_input_$OUT_DIR/summary_commands.txt > $OUT_DIR/summary.log 2>&1
 if [ \$? != 0 ]; then
    echo \"warning summary returned an error code\"
    exit 1
@@ -561,7 +561,6 @@ function run_prism() {
       NUM_THREADS=2
    fi
    make -f melseq_prism.mk -d -k  --no-builtin-rules -j $NUM_THREADS `cat $OUT_DIR/${ANALYSIS}_targets.txt` > $OUT_DIR/${ANALYSIS}.log 2>&1
-   echo "* done *"
 }
 
 function clean() {
@@ -580,6 +579,7 @@ function main() {
    else
       run_prism
       if [ $? == 0 ] ; then
+         echo "* done *"
          clean
       else
          echo "error state from melseq run - skipping clean "
